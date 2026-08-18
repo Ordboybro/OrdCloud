@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import *
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton
+from PySide6.QtCore import Qt
 
 
 class ActionBar(QFrame):
@@ -10,24 +11,31 @@ class ActionBar(QFrame):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(2)
 
         actions = [
-            "＋ New Folder",
-            "↑ Upload",
-            "Copy",
-            "Paste",
-            "Rename",
-            "Delete",
+            ("new_folder", "+  New Folder"),
+            ("upload", "↑  Upload"),
+            ("copy", "Copy"),
+            ("paste", "Paste"),
+            ("rename", "Rename"),
+            ("delete", "Delete"),
         ]
 
         self.buttons = {}
 
-        for text in actions:
-
+        for key, text in actions:
             button = QPushButton(text)
-
-            self.buttons[text] = button
-
+            button.setCursor(Qt.PointingHandCursor)
+            button.setProperty("actionKey", key)
+            self.buttons[key] = button
             layout.addWidget(button)
+
+        self.new_folder = self.buttons["new_folder"]
+        self.upload = self.buttons["upload"]
+        self.copy = self.buttons["copy"]
+        self.paste = self.buttons["paste"]
+        self.rename = self.buttons["rename"]
+        self.delete = self.buttons["delete"]
 
         layout.addStretch()
