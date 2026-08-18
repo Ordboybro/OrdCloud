@@ -4,7 +4,7 @@ import os
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu
 
-from config import APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
+from config import APP_NAME, APP_VERSION, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
 from modules.clipboard import Clipboard
 from modules.recent import Recent
 from modules.storage_service import storage_path
@@ -31,6 +31,7 @@ class MainWindow(QMainWindow):
         self.selected_item = None
         self.clipboard = Clipboard()
         self.compact_view = False
+
         self._build_ui()
         self.ui_actions = UIActions(self)
         self._connect_signals()
@@ -40,18 +41,21 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         central = QWidget()
+        central.setObjectName("appRoot")
         self.setCentralWidget(central)
+
         root = QHBoxLayout(central)
-        root.setContentsMargins(20, 16, 20, 16)
-        root.setSpacing(12)
+        root.setContentsMargins(16, 14, 16, 14)
+        root.setSpacing(14)
 
         self.left_menu = LeftMenu()
         root.addWidget(self.left_menu)
 
         center = QWidget()
+        center.setObjectName("centerPanel")
         center_layout = QVBoxLayout(center)
         center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(10)
+        center_layout.setSpacing(9)
 
         self.toolbar = TopToolbar()
         self.navigation = Navigation()
@@ -108,10 +112,6 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.activated.connect(callback)
 
-    def _focus_search(self):
-        self.toolbar.search.setFocus()
-        self.toolbar.search.selectAll()
-
     def _show_home(self):
         self.selected_item = None
         self.dashboard.show()
@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         self.navigation.show()
         self.action_bar.show()
         self.status_bar.show()
-        if not self.explorer.current:
+        if self.explorer.current is None:
             self.explorer.open(storage_path())
 
     def _open_storage_folder(self, name):
@@ -156,12 +156,10 @@ class MainWindow(QMainWindow):
     def _refresh_current(self):
         if self.dashboard.isVisible():
             self.dashboard.refresh()
-            self.right_sidebar.refresh()
-            self.left_menu.refresh_storage()
         else:
             self.explorer.refresh()
-            self.right_sidebar.refresh()
-            self.left_menu.refresh_storage()
+        self.right_sidebar.refresh()
+        self.left_menu.refresh_storage()
 
     def _path_changed(self, path):
         self.navigation.setPath(path)
@@ -216,15 +214,19 @@ class MainWindow(QMainWindow):
     def _search(self, text):
         if self.dashboard.isVisible():
             return
+        current = self.explorer.current
+        if current is None:
+            return
         if not text.strip():
             self.explorer.refresh()
             self.status_bar.updateStatus("Ready")
             return
-        current = self.explorer.current
+
         results = []
+        needle = text.strip().casefold()
         try:
             for item in current.rglob("*"):
-                if text.lower() in item.name.lower():
+                if needle in item.name.casefold():
                     results.append(item)
         except (PermissionError, OSError):
             pass
@@ -240,7 +242,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 APP_NAME,
-                "Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: 1.0",
+                f"Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: {APP_VERSION}",
             )
             return
         if page == "trash":
@@ -280,6 +282,7 @@ class MainWindow(QMainWindow):
             except ValueError:
                 continue
             paths.append(path)
+        self._show_files()
         self.explorer.show_results(paths)
         self.navigation.setPath(self.explorer.current)
 
@@ -297,6 +300,8 @@ class MainWindow(QMainWindow):
     def _upload_to_current(self):
         if self.dashboard.isVisible():
             self.left_menu.select("files")
+        if self.explorer.current is None:
+            self.explorer.open(storage_path())
         self.ui_actions.upload()
 
     def _upgrade(self):

@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
 
 from ui.storage_panel import StoragePanel
 
@@ -11,11 +11,11 @@ class RightSidebar(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("rightSidebar")
-        self.setFixedWidth(470)
+        self.setFixedWidth(286)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 10, 0, 0)
-        layout.setSpacing(12)
+        layout.setContentsMargins(4, 10, 0, 0)
+        layout.setSpacing(14)
 
         self.storage = StoragePanel()
         layout.addWidget(self.storage)
@@ -26,11 +26,12 @@ class RightSidebar(QFrame):
 
         self.upload_box = QFrame()
         self.upload_box.setObjectName("uploadBox")
+        self.upload_box.setCursor(Qt.PointingHandCursor)
         upload_layout = QVBoxLayout(self.upload_box)
         upload_layout.setContentsMargins(12, 18, 12, 18)
         upload_layout.setSpacing(5)
 
-        icon = QLabel("⇧")
+        icon = QLabel("↑")
         icon.setObjectName("uploadIcon")
         icon.setAlignment(Qt.AlignCenter)
         text = QLabel("Drop files here")
@@ -48,7 +49,8 @@ class RightSidebar(QFrame):
         layout.addStretch(1)
 
         upgrade = QPushButton("Upgrade Plan")
-        upgrade.setMinimumHeight(42)
+        upgrade.setObjectName("upgradeButton")
+        upgrade.setMinimumHeight(40)
         upgrade.setCursor(Qt.PointingHandCursor)
         upgrade.clicked.connect(self.upgradeRequested.emit)
         layout.addWidget(upgrade)

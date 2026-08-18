@@ -11,11 +11,11 @@ class TopToolbar(QFrame):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(7)
 
-        self.back = IconButton("←")
-        self.forward = IconButton("→")
-        self.reload = IconButton("⟳")
+        self.back = IconButton("‹")
+        self.forward = IconButton("›")
+        self.reload = IconButton("↻")
         self.search = SearchBox()
         self.notification = IconButton("♢")
         self.notification.setObjectName("notificationButton")
@@ -32,9 +32,9 @@ class TopToolbar(QFrame):
 
         for button in (self.back, self.forward, self.reload):
             layout.addWidget(button)
-        layout.addSpacing(8)
+        layout.addSpacing(9)
         layout.addWidget(self.search, 1)
-        layout.addSpacing(8)
+        layout.addSpacing(9)
         layout.addWidget(self.notification)
         layout.addWidget(self.view)
         layout.addWidget(self.profile)
