@@ -3,7 +3,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 APP_NAME = "OrdCloud"
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 
 RESOURCES_DIR = BASE_DIR / "resources"
 ICONS_DIR = RESOURCES_DIR / "icons"
@@ -12,7 +12,7 @@ DATA_DIR = BASE_DIR / "data"
 STORAGE_DIR = DATA_DIR / "storage"
 THEME = RESOURCES_DIR / "style.qss"
 
-# Tuned for the 1366x768 reference viewport.
+# Reference viewport used while matching the supplied UI design.
 WINDOW_WIDTH = 1366
 WINDOW_HEIGHT = 768
 MIN_WINDOW_WIDTH = 1120
