@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 from PySide6.QtCore import Signal, Qt
 
 
@@ -17,6 +17,7 @@ class FileRow(QFrame):
         self.setMaximumHeight(58)
         self.setCursor(Qt.PointingHandCursor)
         self._compact = False
+        self._selected = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 4, 12, 4)
@@ -47,6 +48,13 @@ class FileRow(QFrame):
             return datetime.fromtimestamp(float(value)).strftime("%d.%m.%Y %H:%M")
         except (TypeError, ValueError, OSError):
             return str(value)
+
+    def set_selected(self, value: bool):
+        self._selected = value
+        self.setProperty("selected", "true" if value else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
 
     def set_compact(self, value: bool):
         self._compact = value
