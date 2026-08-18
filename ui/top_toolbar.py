@@ -13,13 +13,13 @@ class TopToolbar(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.back = IconButton("‹")
-        self.forward = IconButton("›")
+        self.back = IconButton("←")
+        self.forward = IconButton("→")
         self.reload = IconButton("⟳")
         self.search = SearchBox()
-        self.notification = IconButton("♧")
+        self.notification = IconButton("♢")
         self.notification.setObjectName("notificationButton")
-        self.view = IconButton("⠿")
+        self.view = IconButton("▦")
         self.profile = IconButton("A")
         self.profile.setObjectName("profileButton")
 
