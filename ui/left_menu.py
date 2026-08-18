@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import *
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel
 from PySide6.QtCore import Signal
 
 from ui.menu_button import MenuButton
@@ -18,8 +18,9 @@ class LeftMenu(QFrame):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(6)
 
-        logo = QLabel("ORDFILES")
+        logo = QLabel("ORDCLOUD")
         logo.setObjectName("logo")
+        logo.setToolTip("OrdCloud")
 
         layout.addWidget(logo)
         layout.addSpacing(24)
@@ -27,40 +28,32 @@ class LeftMenu(QFrame):
         self.buttons = {}
 
         items = [
-            ("home", "🏠", "Home"),
-            ("files", "📁", "My Files"),
-            ("favorites", "⭐", "Favorites"),
-            ("recent", "🕒", "Recent"),
+            ("home", "⌂", "Home"),
+            ("files", "□", "My Files"),
+            ("favorites", "☆", "Favorites"),
+            ("recent", "◷", "Recent"),
             ("cloud", "☁", "Cloud"),
-            ("uploads", "📤", "Uploads"),
-            ("trash", "🗑", "Trash"),
+            ("uploads", "↑", "Uploads"),
+            ("trash", "⌫", "Trash"),
         ]
 
         for key, icon, text in items:
-
             button = MenuButton(icon, text)
-
             self.buttons[key] = button
-
             layout.addWidget(button)
-
             button.clicked.connect(
-                lambda checked=False, k=key:
-                self.select(k)
+                lambda checked=False, k=key: self.select(k)
             )
 
         layout.addStretch()
 
         settings = MenuButton("⚙", "Settings")
-
         self.buttons["settings"] = settings
-
         layout.addWidget(settings)
 
         self.select("home")
 
     def select(self, key: str):
-
         for name, button in self.buttons.items():
             button.setChecked(name == key)
 
