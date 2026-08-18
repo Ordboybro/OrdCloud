@@ -7,6 +7,7 @@ from config import APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_
 from modules.clipboard import Clipboard
 from modules.recent import Recent
 from modules.storage_service import storage_path
+from modules.ui_actions import UIActions
 from ui.left_menu import LeftMenu
 from ui.top_toolbar import TopToolbar
 from ui.navigation import Navigation
@@ -30,7 +31,9 @@ class MainWindow(QMainWindow):
         self.clipboard = Clipboard()
         self.compact_view = False
         self._build_ui()
+        self.ui_actions = UIActions(self)
         self._connect_signals()
+        self.ui_actions.connect()
         self._show_home()
 
     def _build_ui(self):
@@ -168,6 +171,7 @@ class MainWindow(QMainWindow):
             return
         if not text.strip():
             self.explorer.refresh()
+            self.status_bar.updateStatus("Ready")
             return
         current = self.explorer.current
         results = []
@@ -186,7 +190,11 @@ class MainWindow(QMainWindow):
             return
         if page == "settings":
             self._show_home()
-            QMessageBox.information(self, APP_NAME, "Settings will be expanded in the next stage.")
+            QMessageBox.information(
+                self,
+                APP_NAME,
+                "Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: 1.0",
+            )
             return
         if page == "trash":
             try:
@@ -209,12 +217,30 @@ class MainWindow(QMainWindow):
             self.explorer.open(path)
         elif page == "files":
             self.explorer.open(storage_path())
+        elif page == "favorites":
+            self._open_saved_paths(self.dashboard.favorites.load())
+        elif page == "recent":
+            self._open_saved_paths(self.dashboard.recent.load())
+
+    def _open_saved_paths(self, values):
+        paths = []
+        for value in values:
+            path = Path(value)
+            if not path.exists():
+                continue
+            try:
+                path.resolve().relative_to(storage_path().resolve())
+            except ValueError:
+                continue
+            paths.append(path)
+        self.explorer.show_results(paths)
+        self.navigation.setPath(self.explorer.current)
 
     def _notifications(self):
         QMessageBox.information(self, APP_NAME, "No new notifications.")
 
     def _profile(self):
-        QMessageBox.information(self, APP_NAME, "Local profile: Ordboybro")
+        QMessageBox.information(self, APP_NAME, "Local profile: Ordboybro\nStorage: 5 GB")
 
     def _toggle_view(self):
         self.compact_view = not self.compact_view
@@ -222,8 +248,9 @@ class MainWindow(QMainWindow):
         self.status_bar.updateStatus("Compact view" if self.compact_view else "Comfortable view")
 
     def _upload_to_current(self):
-        from modules.ui_actions import UIActions
-        UIActions(self).upload()
+        if self.dashboard.isVisible():
+            self.left_menu.select("files")
+        self.ui_actions.upload()
 
     def _upgrade(self):
-        QMessageBox.information(self, APP_NAME, "Storage limit: 5 GB\nCloud plans will be added later.")
+        QMessageBox.information(self, APP_NAME, "OrdCloud storage\n\nCurrent plan: Free\nLimit: 5 GB")
