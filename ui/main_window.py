@@ -4,6 +4,7 @@ import os
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox
 
 from config import APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
+from modules.clipboard import Clipboard
 from modules.recent import Recent
 from modules.storage_service import storage_path
 from ui.left_menu import LeftMenu
@@ -26,6 +27,7 @@ class MainWindow(QMainWindow):
         self.history = []
         self.history_index = -1
         self.selected_item = None
+        self.clipboard = Clipboard()
         self.compact_view = False
         self._build_ui()
         self._connect_signals()
@@ -175,7 +177,6 @@ class MainWindow(QMainWindow):
                     results.append(item)
         except (PermissionError, OSError):
             pass
-
         self.explorer.show_results(results)
         self.status_bar.updateStatus(f"Search: {len(results)}")
 
@@ -183,6 +184,17 @@ class MainWindow(QMainWindow):
         if page == "home":
             self._show_home()
             return
+        if page == "settings":
+            self._show_home()
+            QMessageBox.information(self, APP_NAME, "Settings will be expanded in the next stage.")
+            return
+        if page == "trash":
+            try:
+                os.startfile("shell:RecycleBinFolder")
+            except OSError:
+                QMessageBox.information(self, APP_NAME, "Recycle Bin could not be opened.")
+            return
+
         self._show_files()
         folder_map = {
             "documents": "Documents",
@@ -197,10 +209,6 @@ class MainWindow(QMainWindow):
             self.explorer.open(path)
         elif page == "files":
             self.explorer.open(storage_path())
-        elif page == "trash":
-            self.explorer.open(storage_path())
-        elif page in {"favorites", "recent", "cloud", "uploads", "settings"}:
-            self.status_bar.updateStatus(page.title())
 
     def _notifications(self):
         QMessageBox.information(self, APP_NAME, "No new notifications.")
