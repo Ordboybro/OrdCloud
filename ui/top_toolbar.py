@@ -18,6 +18,7 @@ class TopToolbar(QFrame):
         self.reload = IconButton("⟳")
         self.search = SearchBox()
         self.notification = IconButton("♧")
+        self.notification.setObjectName("notificationButton")
         self.view = IconButton("⠿")
         self.profile = IconButton("A")
         self.profile.setObjectName("profileButton")
