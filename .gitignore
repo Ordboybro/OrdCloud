@@ -8,3 +8,8 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+data/recent.json
+data/favorites.json
+data/storage/*
+!data/storage/.gitkeep
