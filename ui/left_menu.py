@@ -15,27 +15,27 @@ class LeftMenu(QFrame):
         self.setFixedWidth(205)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 16)
-        layout.setSpacing(2)
+        layout.setContentsMargins(18, 16, 18, 15)
+        layout.setSpacing(1)
 
         logo = QLabel("ORDCLOUD")
         logo.setObjectName("logo")
         layout.addWidget(logo)
-        layout.addSpacing(28)
+        layout.addSpacing(24)
 
         self.buttons = {}
         self._add_button(layout, "home", "⌂", "Home")
         layout.addSpacing(12)
         self._add_section(layout, "Files")
-        self._add_button(layout, "files", "▣", "My Files")
+        self._add_button(layout, "files", "▰", "My Files")
         self._add_button(layout, "documents", "▤", "Documents")
-        self._add_button(layout, "images", "▧", "Photos")
-        self._add_button(layout, "videos", "▹", "Video")
+        self._add_button(layout, "images", "▧", "Photo")
+        self._add_button(layout, "videos", "▷", "Video")
         self._add_button(layout, "music", "♫", "Music")
         self._add_button(layout, "archives", "▥", "Archives")
         layout.addSpacing(12)
         self._add_section(layout, "Other")
-        self._add_button(layout, "trash", "♜", "Trash")
+        self._add_button(layout, "trash", "♧", "Trash")
 
         layout.addStretch(1)
 
@@ -60,10 +60,9 @@ class LeftMenu(QFrame):
         self.select("home")
 
     def _add_section(self, layout, text):
-        if text:
-            label = QLabel(text)
-            label.setObjectName("menuSection")
-            layout.addWidget(label)
+        label = QLabel(text)
+        label.setObjectName("menuSection")
+        layout.addWidget(label)
 
     def _add_button(self, layout, key, icon, text):
         button = MenuButton(icon, text)
