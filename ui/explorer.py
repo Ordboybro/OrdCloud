@@ -11,6 +11,7 @@ from ui.file_row import FileRow
 class Explorer(QWidget):
     pathChanged = Signal(str)
     itemSelected = Signal(dict)
+    contextRequested = Signal(dict)
     countChanged = Signal(int)
 
     def __init__(self):
@@ -49,6 +50,7 @@ class Explorer(QWidget):
             row.set_compact(self._compact)
             row.opened.connect(self.open)
             row.selected.connect(self.itemSelected.emit)
+            row.contextRequested.connect(self.contextRequested.emit)
             self.layout.addWidget(row)
         self.layout.addStretch()
         self.countChanged.emit(len(items))
@@ -75,8 +77,9 @@ class Explorer(QWidget):
         for path in paths:
             path = Path(path)
             try:
+                path.resolve().relative_to(storage_path().resolve())
                 stat = path.stat()
-            except OSError:
+            except (ValueError, OSError):
                 continue
             items.append({
                 "name": path.name,
