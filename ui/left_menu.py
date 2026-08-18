@@ -41,6 +41,7 @@ class LeftMenu(QFrame):
 
         settings = MenuButton("⚙", "Settings")
         self.buttons["settings"] = settings
+        settings.clicked.connect(lambda: self.pageChanged.emit("settings"))
         layout.addWidget(settings)
 
         storage_label = QLabel("Used 0 B of 5 GB")
