@@ -94,7 +94,6 @@ OrdCloud/
 │   ├── left_menu.py
 │   ├── main_window.py
 │   ├── navigation.py
-│   ├── navigation.py
 │   ├── right_sidebar.py
 │   ├── status_bar.py
 │   └── top_toolbar.py
