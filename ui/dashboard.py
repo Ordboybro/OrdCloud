@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -11,24 +12,28 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from modules.favorites import Favorites
+from modules.recent import Recent
 from modules.storage_service import storage_path
 
 
 class QuickCard(QFrame):
     opened = Signal(str)
 
-    def __init__(self, title, icon, path_name):
+    def __init__(self, title: str, icon: str, path_name: str, color_name: str):
         super().__init__()
         self.setObjectName("quickCard")
         self.setCursor(Qt.PointingHandCursor)
         self.path_name = path_name
+        self.setProperty("cardType", color_name)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(10)
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("quickIcon")
+        icon_label.setProperty("iconType", color_name)
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
@@ -42,40 +47,55 @@ class QuickCard(QFrame):
         text.addWidget(count)
         layout.addLayout(text, 1)
 
-    def _count(self):
+    def _count(self) -> str:
         folder = storage_path() / self.path_name
         try:
-            if folder.exists():
-                return f"{sum(1 for p in folder.iterdir())} files"
+            count = sum(1 for p in folder.iterdir()) if folder.exists() else 0
+            return f"{count} files"
         except OSError:
-            pass
-        return "0 files"
+            return "0 files"
 
     def mousePressEvent(self, event):
-        self.opened.emit(self.path_name)
+        if event.button() == Qt.LeftButton:
+            self.opened.emit(self.path_name)
         super().mousePressEvent(event)
 
 
 class RecentRow(QFrame):
-    def __init__(self, name, modified, size, icon):
+    opened = Signal(str)
+    favoriteChanged = Signal(str, bool)
+
+    def __init__(self, path: Path, favorites: Favorites):
         super().__init__()
+        self.path = path
+        self.favorites = favorites
         self.setObjectName("recentRow")
+        self.setCursor(Qt.PointingHandCursor)
+
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 4, 8, 4)
+        layout.setContentsMargins(10, 3, 8, 3)
         layout.setSpacing(10)
 
+        icon = "▣" if path.is_dir() else "▤"
         icon_label = QLabel(icon)
         icon_label.setObjectName("recentIcon")
         icon_label.setFixedWidth(28)
         layout.addWidget(icon_label)
 
-        name_label = QLabel(name)
+        name_label = QLabel(path.name)
         name_label.setObjectName("recentName")
         layout.addWidget(name_label, 1)
 
+        try:
+            stat = path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M")
+            size = "—" if path.is_dir() else self._format_size(stat.st_size)
+        except OSError:
+            modified, size = "—", "—"
+
         date_label = QLabel(modified)
         date_label.setObjectName("recentMeta")
-        date_label.setFixedWidth(150)
+        date_label.setFixedWidth(145)
         layout.addWidget(date_label)
 
         size_label = QLabel(size)
@@ -83,40 +103,69 @@ class RecentRow(QFrame):
         size_label.setFixedWidth(70)
         layout.addWidget(size_label)
 
-        star = QPushButton("☆")
-        star.setObjectName("recentStar")
-        star.setFixedSize(28, 28)
-        star.setCursor(Qt.PointingHandCursor)
-        layout.addWidget(star)
+        self.star = QPushButton("★" if favorites.contains(str(path)) else "☆")
+        self.star.setObjectName("recentStar")
+        self.star.setFixedSize(28, 28)
+        self.star.setCursor(Qt.PointingHandCursor)
+        self.star.clicked.connect(self._toggle_favorite)
+        layout.addWidget(self.star)
 
         more = QPushButton("•••")
         more.setObjectName("recentMore")
         more.setFixedSize(30, 28)
         more.setCursor(Qt.PointingHandCursor)
+        more.clicked.connect(lambda: self.opened.emit(str(path)))
         layout.addWidget(more)
+
+    @staticmethod
+    def _format_size(size: int) -> str:
+        if size < 1024:
+            return f"{size} B"
+        if size < 1024 ** 2:
+            return f"{size / 1024:.1f} KB"
+        if size < 1024 ** 3:
+            return f"{size / 1024 ** 2:.1f} MB"
+        return f"{size / 1024 ** 3:.1f} GB"
+
+    def _toggle_favorite(self):
+        value = str(self.path)
+        if self.favorites.contains(value):
+            self.favorites.remove(value)
+            self.star.setText("☆")
+            self.favoriteChanged.emit(value, False)
+        else:
+            self.favorites.add(value)
+            self.star.setText("★")
+            self.favoriteChanged.emit(value, True)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.opened.emit(str(self.path))
+        super().mousePressEvent(event)
 
 
 class Dashboard(QWidget):
     folderRequested = Signal(str)
+    fileRequested = Signal(str)
+    showAllRequested = Signal()
 
     def __init__(self):
         super().__init__()
         self.setObjectName("dashboard")
+        self.favorites = Favorites()
+        self.recent = Recent()
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 2, 8, 0)
-        root.setSpacing(14)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(12)
 
         title = QLabel("Content")
         title.setObjectName("contentTitle")
         root.addWidget(title)
 
-        quick_title_row = QHBoxLayout()
         quick_title = QLabel("Quick access")
         quick_title.setObjectName("subTitle")
-        quick_title_row.addWidget(quick_title)
-        quick_title_row.addStretch()
-        root.addLayout(quick_title_row)
+        root.addWidget(quick_title)
 
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
@@ -124,16 +173,17 @@ class Dashboard(QWidget):
         grid.setVerticalSpacing(10)
 
         cards = [
-            ("Documents", "▣", "Documents"),
-            ("Photos", "◉", "Images"),
-            ("Video", "▶", "Videos"),
-            ("Presentations", "▤", "Documents"),
-            ("Archives", "▥", "Archives"),
+            ("Documents", "▣", "Documents", "blue"),
+            ("Photos", "●", "Images", "green"),
+            ("Video", "▶", "Videos", "purple"),
+            ("Presentations", "▤", "Presentations", "red"),
+            ("Archives", "▥", "Archives", "violet"),
         ]
-        for index, (title_text, icon, folder) in enumerate(cards):
-            card = QuickCard(title_text, icon, folder)
+        for index, item in enumerate(cards):
+            card = QuickCard(*item)
             card.opened.connect(self.folderRequested.emit)
             grid.addWidget(card, 0, index)
+            grid.setColumnStretch(index, 1)
 
         root.addLayout(grid)
 
@@ -144,36 +194,78 @@ class Dashboard(QWidget):
         recent_header.addStretch()
         show_all = QPushButton("Show all")
         show_all.setObjectName("showAll")
+        show_all.clicked.connect(self.showAllRequested.emit)
         recent_header.addWidget(show_all)
         root.addLayout(recent_header)
 
-        table = QFrame()
-        table.setObjectName("recentTable")
-        table_layout = QVBoxLayout(table)
-        table_layout.setContentsMargins(0, 4, 0, 4)
-        table_layout.setSpacing(4)
+        self.table = QFrame()
+        self.table.setObjectName("recentTable")
+        self.table_layout = QVBoxLayout(self.table)
+        self.table_layout.setContentsMargins(0, 4, 0, 4)
+        self.table_layout.setSpacing(4)
 
         header = QFrame()
         header.setObjectName("recentHeader")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 2, 8, 2)
-        header_layout.addWidget(QLabel("Name"), 1)
-        header_layout.addWidget(QLabel("Date modified"), 0)
-        header_layout.itemAt(1).widget().setFixedWidth(150)
-        header_layout.addWidget(QLabel("Size"), 0)
-        header_layout.itemAt(2).widget().setFixedWidth(70)
+        name = QLabel("Name")
+        date = QLabel("Date modified")
+        size = QLabel("Size")
+        header_layout.addWidget(name, 1)
+        header_layout.addWidget(date)
+        date.setFixedWidth(145)
+        header_layout.addWidget(size)
+        size.setFixedWidth(70)
         header_layout.addSpacing(66)
         table_layout.addWidget(header)
+        root.addWidget(self.table, 1)
 
-        samples = [
-            ("Study", "Today, 14:32", "—", "▣"),
-            ("Nature.jpg", "Today, 12:18", "2.3 MB", "◉"),
-            ("Report.pdf", "Yesterday, 21:07", "1.5 MB", "▤"),
-            ("Report.docx", "Yesterday, 18:20", "1.1 MB", "▤"),
-            ("Table.xlsx", "28 May 2025", "312 KB", "▤"),
-            ("Archive.zip", "27 May 2025", "5.6 MB", "▥"),
-        ]
-        for row in samples:
-            table_layout.addWidget(RecentRow(*row))
+        self.refresh()
 
-        root.addWidget(table, 1)
+    def refresh(self):
+        while self.table_layout.count() > 1:
+            item = self.table_layout.takeAt(1)
+            if item.widget():
+                item.widget().deleteLater()
+
+        paths = []
+        for raw in self.recent.load():
+            path = Path(raw)
+            if path.exists() and self._inside_storage(path):
+                paths.append(path)
+
+        if not paths:
+            for folder in ("Documents", "Images", "Videos", "Presentations", "Archives"):
+                directory = storage_path() / folder
+                if directory.exists():
+                    try:
+                        paths.extend(sorted(directory.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)[:2])
+                    except OSError:
+                        pass
+        paths = paths[:6]
+
+        if not paths:
+            empty = QLabel("No recent files")
+            empty.setObjectName("recentEmpty")
+            empty.setAlignment(Qt.AlignCenter)
+            self.table_layout.addWidget(empty)
+            return
+
+        for path in paths:
+            row = RecentRow(path, self.favorites)
+            row.opened.connect(self._open_recent)
+            self.table_layout.addWidget(row)
+
+    def _open_recent(self, value: str):
+        path = Path(value)
+        if path.exists():
+            self.recent.add(str(path))
+            self.fileRequested.emit(str(path))
+
+    @staticmethod
+    def _inside_storage(path: Path) -> bool:
+        try:
+            path.resolve().relative_to(storage_path().resolve())
+            return True
+        except ValueError:
+            return False
