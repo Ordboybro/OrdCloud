@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  compile:
+  quality:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -23,3 +23,6 @@ jobs:
 
       - name: Compile Python sources
         run: python -m compileall -q .
+
+      - name: Run storage tests
+        run: python -m unittest discover -s tests -v
