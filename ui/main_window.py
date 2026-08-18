@@ -1,7 +1,8 @@
 from pathlib import Path
 import os
 
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu
 
 from config import APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
 from modules.clipboard import Clipboard
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
         self.ui_actions = UIActions(self)
         self._connect_signals()
         self.ui_actions.connect()
+        self._setup_shortcuts()
         self._show_home()
 
     def _build_ui(self):
@@ -73,6 +75,7 @@ class MainWindow(QMainWindow):
         self.explorer.pathChanged.connect(self._path_changed)
         self.explorer.countChanged.connect(self.status_bar.updateItems)
         self.explorer.itemSelected.connect(self._item_selected)
+        self.explorer.contextRequested.connect(self._show_context_menu)
         self.navigation.pathClicked.connect(self._navigate)
         self.toolbar.reload.clicked.connect(self._refresh_current)
         self.toolbar.back.clicked.connect(self._go_back)
@@ -87,6 +90,27 @@ class MainWindow(QMainWindow):
         self.dashboard.showAllRequested.connect(lambda: self.left_menu.select("files"))
         self.right_sidebar.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.upgradeRequested.connect(self._upgrade)
+
+    def _setup_shortcuts(self):
+        shortcuts = [
+            ("Ctrl+F", self._focus_search),
+            ("Ctrl+N", self.ui_actions.create_folder),
+            ("Ctrl+U", self.ui_actions.upload),
+            ("Ctrl+C", self.ui_actions.copy),
+            ("Ctrl+V", self.ui_actions.paste),
+            ("F2", self.ui_actions.rename),
+            ("Delete", self.ui_actions.delete),
+            ("Alt+Left", self._go_back),
+            ("Alt+Right", self._go_forward),
+            ("F5", self._refresh_current),
+        ]
+        for sequence, callback in shortcuts:
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.activated.connect(callback)
+
+    def _focus_search(self):
+        self.toolbar.search.setFocus()
+        self.toolbar.search.selectAll()
 
     def _show_home(self):
         self.selected_item = None
@@ -153,6 +177,29 @@ class MainWindow(QMainWindow):
     def _item_selected(self, data):
         self.selected_item = data
         self.status_bar.updateStatus(data["name"])
+
+    def _show_context_menu(self, data):
+        self.selected_item = data
+        menu = QMenu(self)
+
+        open_action = QAction("Open", menu)
+        open_action.triggered.connect(lambda: self._open_recent_file(data["path"]))
+        menu.addAction(open_action)
+        menu.addSeparator()
+
+        copy_action = QAction("Copy", menu)
+        copy_action.triggered.connect(self.ui_actions.copy)
+        menu.addAction(copy_action)
+
+        rename_action = QAction("Rename", menu)
+        rename_action.triggered.connect(self.ui_actions.rename)
+        menu.addAction(rename_action)
+
+        delete_action = QAction("Delete", menu)
+        delete_action.triggered.connect(self.ui_actions.delete)
+        menu.addAction(delete_action)
+
+        menu.exec(self.cursor().pos())
 
     def _go_back(self):
         if self.dashboard.isVisible() or self.history_index <= 0:
