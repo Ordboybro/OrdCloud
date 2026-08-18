@@ -3,13 +3,14 @@ import shutil
 
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
+from modules.recent import Recent
 from modules.storage_service import storage, storage_path
 
 
 class UIActions:
-
     def __init__(self, window):
         self.window = window
+        self.recent = Recent()
 
     @property
     def explorer(self):
@@ -27,69 +28,49 @@ class UIActions:
         bar.paste.clicked.connect(self.paste)
         bar.rename.clicked.connect(self.rename)
         bar.delete.clicked.connect(self.delete)
-
         self.window.left_menu.pageChanged.connect(self.page_changed)
 
     def _selected_path(self):
         if not self.selected:
-            QMessageBox.information(
-                self.window,
-                "OrdCloud",
-                "Select a file or folder first.",
-            )
+            QMessageBox.information(self.window, "OrdCloud", "Select a file or folder first.")
             return None
 
         path = Path(self.selected["path"])
         if not path.exists():
             self.explorer.refresh()
+            self.window.selected_item = None
             return None
 
         try:
             path.resolve().relative_to(storage_path().resolve())
         except ValueError:
-            QMessageBox.warning(
-                self.window,
-                "OrdCloud",
-                "The selected path is outside storage.",
-            )
+            QMessageBox.warning(self.window, "OrdCloud", "The selected path is outside storage.")
             return None
-
         return path
 
     @staticmethod
     def _relative(path):
-        return str(
-            Path(path).resolve().relative_to(
-                storage_path().resolve()
-            )
-        )
+        return str(Path(path).resolve().relative_to(storage_path().resolve()))
+
+    def _refresh(self):
+        self.explorer.refresh()
+        self.window.dashboard.refresh()
+        self.window.right_sidebar.refresh()
+        self.window.left_menu.refresh_storage()
 
     def create_folder(self):
-        name, ok = QInputDialog.getText(
-            self.window,
-            "New Folder",
-            "Folder name:",
-        )
+        name, ok = QInputDialog.getText(self.window, "New Folder", "Folder name:")
         if not ok:
             return
-
         name = name.strip()
         if not name or Path(name).name != name or name in {".", ".."}:
             QMessageBox.warning(self.window, "OrdCloud", "Invalid folder name.")
             return
-
         try:
-            storage.create_folder(
-                self._relative(self.explorer.current),
-                name,
-            )
-            self.explorer.refresh()
+            storage.create_folder(self._relative(self.explorer.current), name)
+            self._refresh()
         except FileExistsError:
-            QMessageBox.warning(
-                self.window,
-                "OrdCloud",
-                "A folder with this name already exists.",
-            )
+            QMessageBox.warning(self.window, "OrdCloud", "A folder with this name already exists.")
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self.window, "OrdCloud", str(exc))
 
@@ -104,8 +85,8 @@ class UIActions:
             return
 
         try:
-            for source in files:
-                source = Path(source)
+            for source_name in files:
+                source = Path(source_name)
                 destination = self.explorer.current / source.name
 
                 if destination.exists():
@@ -122,12 +103,14 @@ class UIActions:
                     else:
                         destination.unlink()
 
-                if not storage.can_add(source.stat().st_size):
-                    raise OSError("Storage limit exceeded.")
+                size = source.stat().st_size
+                if not storage.can_add(size):
+                    raise OSError("Storage limit exceeded (5 GB).")
 
                 shutil.copy2(source, destination)
+                self.recent.add(str(destination))
 
-            self.explorer.refresh()
+            self._refresh()
         except (OSError, PermissionError) as exc:
             QMessageBox.critical(self.window, "Upload failed", str(exc))
 
@@ -135,7 +118,6 @@ class UIActions:
         path = self._selected_path()
         if not path:
             return
-
         self.window.clipboard.copy(path)
         self.window.status_bar.updateStatus("Copied")
 
@@ -152,26 +134,26 @@ class UIActions:
 
         destination = self.explorer.current / source.name
         if destination.exists():
-            QMessageBox.warning(
-                self.window,
-                "OrdCloud",
-                "An item with this name already exists here.",
-            )
+            QMessageBox.warning(self.window, "OrdCloud", "An item with this name already exists here.")
             return
 
         try:
             if clipboard.mode == "copy":
                 if source.is_dir():
+                    size = sum(p.stat().st_size for p in source.rglob("*") if p.is_file())
+                    if not storage.can_add(size):
+                        raise OSError("Storage limit exceeded (5 GB).")
                     shutil.copytree(source, destination)
                 else:
                     if not storage.can_add(source.stat().st_size):
-                        raise OSError("Storage limit exceeded.")
+                        raise OSError("Storage limit exceeded (5 GB).")
                     shutil.copy2(source, destination)
             else:
                 shutil.move(str(source), str(destination))
 
+            self.recent.add(str(destination))
             clipboard.clear()
-            self.explorer.refresh()
+            self._refresh()
         except (OSError, PermissionError) as exc:
             QMessageBox.critical(self.window, "Paste failed", str(exc))
 
@@ -179,24 +161,18 @@ class UIActions:
         path = self._selected_path()
         if not path:
             return
-
-        name, ok = QInputDialog.getText(
-            self.window,
-            "Rename",
-            "New name:",
-            text=path.name,
-        )
+        name, ok = QInputDialog.getText(self.window, "Rename", "New name:", text=path.name)
         if not ok:
             return
-
         name = name.strip()
         if not name or Path(name).name != name or name in {".", ".."}:
             QMessageBox.warning(self.window, "OrdCloud", "Invalid name.")
             return
-
         try:
-            storage.rename(self._relative(path), name)
-            self.explorer.refresh()
+            new_path = storage.rename(self._relative(path), name)
+            self.recent.add(str(new_path))
+            self.window.selected_item = None
+            self._refresh()
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self.window, "Rename failed", str(exc))
 
@@ -218,10 +194,10 @@ class UIActions:
             from send2trash import send2trash
             send2trash(str(path))
             self.window.selected_item = None
-            self.explorer.refresh()
+            self._refresh()
         except OSError as exc:
             QMessageBox.critical(self.window, "Delete failed", str(exc))
 
     def page_changed(self, page):
-        if page in {"home", "files", "cloud", "uploads"}:
-            self.explorer.open(storage_path())
+        if page in {"files", "documents", "images", "videos", "music", "archives"}:
+            return
