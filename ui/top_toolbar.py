@@ -13,8 +13,8 @@ class TopToolbar(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.back = IconButton("←")
-        self.forward = IconButton("→")
+        self.back = IconButton("‹")
+        self.forward = IconButton("›")
         self.reload = IconButton("⟳")
         self.search = SearchBox()
         self.notification = IconButton("♧")
@@ -25,12 +25,11 @@ class TopToolbar(QFrame):
         self.forward.setToolTip("Forward")
         self.reload.setToolTip("Refresh")
         self.notification.setToolTip("Notifications")
-        self.view.setToolTip("View")
+        self.view.setToolTip("Change view")
         self.profile.setToolTip("Profile")
 
-        layout.addWidget(self.back)
-        layout.addWidget(self.forward)
-        layout.addWidget(self.reload)
+        for button in (self.back, self.forward, self.reload):
+            layout.addWidget(button)
         layout.addSpacing(8)
         layout.addWidget(self.search, 1)
         layout.addSpacing(8)
