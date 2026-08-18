@@ -1,8 +1,10 @@
 from pathlib import Path
+import os
 
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout
+from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox
 
 from config import APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
+from modules.recent import Recent
 from modules.storage_service import storage_path
 from ui.left_menu import LeftMenu
 from ui.top_toolbar import TopToolbar
@@ -23,6 +25,8 @@ class MainWindow(QMainWindow):
 
         self.history = []
         self.history_index = -1
+        self.selected_item = None
+        self.compact_view = False
         self._build_ui()
         self._connect_signals()
         self._show_home()
@@ -31,7 +35,7 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root = QHBoxLayout(central)
-        root.setContentsMargins(20, 18, 20, 18)
+        root.setContentsMargins(20, 16, 20, 16)
         root.setSpacing(12)
 
         self.left_menu = LeftMenu()
@@ -69,11 +73,20 @@ class MainWindow(QMainWindow):
         self.toolbar.back.clicked.connect(self._go_back)
         self.toolbar.forward.clicked.connect(self._go_forward)
         self.toolbar.search.textChanged.connect(self._search)
+        self.toolbar.notification.clicked.connect(self._notifications)
+        self.toolbar.view.clicked.connect(self._toggle_view)
+        self.toolbar.profile.clicked.connect(self._profile)
         self.left_menu.pageChanged.connect(self._page_changed)
         self.dashboard.folderRequested.connect(self._open_storage_folder)
+        self.dashboard.fileRequested.connect(self._open_recent_file)
+        self.dashboard.showAllRequested.connect(lambda: self.left_menu.select("files"))
+        self.right_sidebar.uploadRequested.connect(self._upload_to_current)
+        self.right_sidebar.upgradeRequested.connect(self._upgrade)
 
     def _show_home(self):
+        self.selected_item = None
         self.dashboard.show()
+        self.dashboard.refresh()
         self.explorer.hide()
         self.navigation.hide()
         self.action_bar.hide()
@@ -96,8 +109,24 @@ class MainWindow(QMainWindow):
             self.left_menu.select("files")
             self.explorer.open(path)
 
+    def _open_recent_file(self, value):
+        path = Path(value)
+        if not path.exists():
+            self.dashboard.refresh()
+            return
+        Recent().add(str(path))
+        if path.is_dir():
+            self.left_menu.select("files")
+            self.explorer.open(path)
+        else:
+            try:
+                os.startfile(str(path))
+            except OSError as exc:
+                QMessageBox.warning(self, APP_NAME, str(exc))
+
     def _refresh_current(self):
         if self.dashboard.isVisible():
+            self.dashboard.refresh()
             self.right_sidebar.refresh()
             self.left_menu.refresh_storage()
         else:
@@ -117,6 +146,7 @@ class MainWindow(QMainWindow):
         self.explorer.open(path)
 
     def _item_selected(self, data):
+        self.selected_item = data
         self.status_bar.updateStatus(data["name"])
 
     def _go_back(self):
@@ -134,7 +164,7 @@ class MainWindow(QMainWindow):
     def _search(self, text):
         if self.dashboard.isVisible():
             return
-        if not text:
+        if not text.strip():
             self.explorer.refresh()
             return
         current = self.explorer.current
@@ -144,29 +174,9 @@ class MainWindow(QMainWindow):
                 if text.lower() in item.name.lower():
                     results.append(item)
         except (PermissionError, OSError):
-            return
+            pass
 
-        self.explorer.clear()
-        from ui.file_row import FileRow
-        for path in results:
-            try:
-                stat = path.stat()
-                data = {
-                    "name": path.name,
-                    "icon": "▣" if path.is_dir() else "▤",
-                    "size": "—" if path.is_dir() else f"{stat.st_size:,} B",
-                    "modified": "",
-                    "path": str(path),
-                    "dir": path.is_dir(),
-                }
-                row = FileRow(data)
-                row.opened.connect(self.explorer.open)
-                row.selected.connect(self._item_selected)
-                self.explorer.layout.addWidget(row)
-            except (PermissionError, OSError):
-                continue
-        self.explorer.layout.addStretch()
-        self.explorer.countChanged.emit(len(results))
+        self.explorer.show_results(results)
         self.status_bar.updateStatus(f"Search: {len(results)}")
 
     def _page_changed(self, page):
@@ -183,7 +193,29 @@ class MainWindow(QMainWindow):
         }
         if page in folder_map:
             path = storage_path() / folder_map[page]
-            if path.exists():
-                self.explorer.open(path)
+            path.mkdir(parents=True, exist_ok=True)
+            self.explorer.open(path)
         elif page == "files":
             self.explorer.open(storage_path())
+        elif page == "trash":
+            self.explorer.open(storage_path())
+        elif page in {"favorites", "recent", "cloud", "uploads", "settings"}:
+            self.status_bar.updateStatus(page.title())
+
+    def _notifications(self):
+        QMessageBox.information(self, APP_NAME, "No new notifications.")
+
+    def _profile(self):
+        QMessageBox.information(self, APP_NAME, "Local profile: Ordboybro")
+
+    def _toggle_view(self):
+        self.compact_view = not self.compact_view
+        self.explorer.set_compact(self.compact_view)
+        self.status_bar.updateStatus("Compact view" if self.compact_view else "Comfortable view")
+
+    def _upload_to_current(self):
+        from modules.ui_actions import UIActions
+        UIActions(self).upload()
+
+    def _upgrade(self):
+        QMessageBox.information(self, APP_NAME, "Storage limit: 5 GB\nCloud plans will be added later.")
