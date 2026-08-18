@@ -33,6 +33,10 @@ class MainWindow(QMainWindow):
         self.clipboard = Clipboard()
         self.compact_view = False
         self._animations = []
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(120)
+        self._search_timer.timeout.connect(lambda: self._search(self.toolbar.search.text()))
 
         self._build_ui()
         self.ui_actions = UIActions(self)
@@ -87,7 +91,7 @@ class MainWindow(QMainWindow):
         self.toolbar.reload.clicked.connect(self._refresh_current)
         self.toolbar.back.clicked.connect(self._go_back)
         self.toolbar.forward.clicked.connect(self._go_forward)
-        self.toolbar.search.textChanged.connect(self._search)
+        self.toolbar.search.textChanged.connect(self._schedule_search)
         self.toolbar.notification.clicked.connect(self._notifications)
         self.toolbar.view.clicked.connect(self._toggle_view)
         self.toolbar.profile.clicked.connect(self._profile)
@@ -116,9 +120,11 @@ class MainWindow(QMainWindow):
             shortcut.activated.connect(callback)
 
     def _focus_search(self):
-        """Focus the global search field and select its current text."""
         self.toolbar.search.setFocus()
         self.toolbar.search.selectAll()
+
+    def _schedule_search(self, _text):
+        self._search_timer.start()
 
     def _fade_in(self, widget):
         effect = QGraphicsOpacityEffect(widget)
@@ -142,6 +148,8 @@ class MainWindow(QMainWindow):
 
     def _show_home(self, animate=True):
         self.selected_item = None
+        self._search_timer.stop()
+        self.toolbar.search.clear()
         self.dashboard.show()
         self.explorer.hide()
         self.navigation.hide()
@@ -263,6 +271,7 @@ class MainWindow(QMainWindow):
                     results.append(item)
         except (PermissionError, OSError):
             pass
+        results.sort(key=lambda item: (not item.is_dir(), item.name.casefold()))
         self.explorer.show_results(results)
         self.status_bar.updateStatus(f"Search: {len(results)}")
 
