@@ -13,11 +13,13 @@ class Explorer(QWidget):
     itemSelected = Signal(dict)
     contextRequested = Signal(dict)
     countChanged = Signal(int)
+    filesDropped = Signal(list)
 
     def __init__(self):
         super().__init__()
         self.current = storage_path()
         self._compact = False
+        self.setAcceptDrops(True)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -66,8 +68,7 @@ class Explorer(QWidget):
 
         self.current = path
         self.clear()
-        model = FileModel(path)
-        items = model.load()
+        items = FileModel(path).load()
         self._add_rows(items)
         self.pathChanged.emit(str(path))
 
@@ -107,3 +108,23 @@ class Explorer(QWidget):
 
     def refresh(self):
         self.open(self.current)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            local_files = [url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()]
+            if local_files:
+                event.acceptProposedAction()
+                return
+        event.ignore()
+
+    def dropEvent(self, event):
+        files = [
+            url.toLocalFile()
+            for url in event.mimeData().urls()
+            if url.isLocalFile() and Path(url.toLocalFile()).is_file()
+        ]
+        if files:
+            self.filesDropped.emit(files)
+            event.acceptProposedAction()
+        else:
+            event.ignore()

@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.explorer.countChanged.connect(self.status_bar.updateItems)
         self.explorer.itemSelected.connect(self._item_selected)
         self.explorer.contextRequested.connect(self._show_context_menu)
+        self.explorer.filesDropped.connect(self._files_dropped)
         self.navigation.pathClicked.connect(self._navigate)
         self.toolbar.reload.clicked.connect(self._refresh_current)
         self.toolbar.back.clicked.connect(self._go_back)
@@ -111,6 +112,10 @@ class MainWindow(QMainWindow):
         for sequence, callback in shortcuts:
             shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.activated.connect(callback)
+
+    def _focus_search(self):
+        self.toolbar.search.setFocus()
+        self.toolbar.search.selectAll()
 
     def _show_home(self):
         self.selected_item = None
@@ -152,6 +157,13 @@ class MainWindow(QMainWindow):
                 os.startfile(str(path))
             except OSError as exc:
                 QMessageBox.warning(self, APP_NAME, str(exc))
+
+    def _files_dropped(self, files):
+        if self.dashboard.isVisible():
+            self.left_menu.select("files")
+        if self.explorer.current is None:
+            self.explorer.open(storage_path())
+        self.ui_actions.upload_files(files)
 
     def _refresh_current(self):
         if self.dashboard.isVisible():
