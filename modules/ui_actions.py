@@ -81,13 +81,25 @@ class UIActions:
             str(Path.home()),
             "All files (*.*)",
         )
-        if not files:
+        if files:
+            self.upload_files(files)
+
+    def upload_files(self, files):
+        current = self.explorer.current
+        try:
+            current.resolve().relative_to(storage_path().resolve())
+        except ValueError:
+            QMessageBox.warning(self.window, "OrdCloud", "The current folder is outside storage.")
             return
 
-        try:
-            for source_name in files:
-                source = Path(source_name)
-                destination = self.explorer.current / source.name
+        for source_name in files:
+            source = Path(source_name)
+            try:
+                if not source.exists() or not source.is_file():
+                    continue
+
+                destination = current / source.name
+                old_size = destination.stat().st_size if destination.is_file() else 0
 
                 if destination.exists():
                     answer = QMessageBox.question(
@@ -104,15 +116,16 @@ class UIActions:
                         destination.unlink()
 
                 size = source.stat().st_size
-                if not storage.can_add(size):
+                if not storage.can_add(size - old_size):
                     raise OSError("Storage limit exceeded (5 GB).")
 
                 shutil.copy2(source, destination)
                 self.recent.add(str(destination))
+            except (OSError, PermissionError) as exc:
+                QMessageBox.critical(self.window, "Upload failed", f"{source.name}: {exc}")
+                continue
 
-            self._refresh()
-        except (OSError, PermissionError) as exc:
-            QMessageBox.critical(self.window, "Upload failed", str(exc))
+        self._refresh()
 
     def copy(self):
         path = self._selected_path()
