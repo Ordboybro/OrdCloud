@@ -1,12 +1,13 @@
 from datetime import datetime
 
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu
 from PySide6.QtCore import Signal, Qt
 
 
 class FileRow(QFrame):
     opened = Signal(str)
     selected = Signal(dict)
+    contextRequested = Signal(dict)
 
     def __init__(self, data: dict):
         super().__init__()
@@ -54,18 +55,22 @@ class FileRow(QFrame):
         self.setMaximumHeight(height + 4)
 
     def mouseDoubleClickEvent(self, event):
-        path = self.data["path"]
-        if self.data.get("dir"):
-            self.opened.emit(path)
-        else:
-            try:
-                import os
-                os.startfile(path)
-            except OSError:
-                pass
+        if event.button() == Qt.LeftButton:
+            path = self.data["path"]
+            if self.data.get("dir"):
+                self.opened.emit(path)
+            else:
+                try:
+                    import os
+                    os.startfile(path)
+                except OSError:
+                    pass
         super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.selected.emit(self.data)
+        elif event.button() == Qt.RightButton:
+            self.selected.emit(self.data)
+            self.contextRequested.emit(self.data)
         super().mousePressEvent(event)
