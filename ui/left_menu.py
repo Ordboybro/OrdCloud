@@ -21,21 +21,25 @@ class LeftMenu(QFrame):
         logo = QLabel("ORDCLOUD")
         logo.setObjectName("logo")
         layout.addWidget(logo)
-        layout.addSpacing(24)
+        layout.addSpacing(18)
 
         self.buttons = {}
         self._add_button(layout, "home", "⌂", "Home")
+        self._add_button(layout, "recent", "◷", "Recent")
+        self._add_button(layout, "favorites", "☆", "Favorites")
+
         layout.addSpacing(12)
         self._add_section(layout, "Files")
-        self._add_button(layout, "files", "▰", "My Files")
+        self._add_button(layout, "files", "▱", "My Files")
         self._add_button(layout, "documents", "▤", "Documents")
         self._add_button(layout, "images", "▧", "Photo")
         self._add_button(layout, "videos", "▷", "Video")
         self._add_button(layout, "music", "♫", "Music")
         self._add_button(layout, "archives", "▥", "Archives")
+
         layout.addSpacing(12)
         self._add_section(layout, "Other")
-        self._add_button(layout, "trash", "♧", "Trash")
+        self._add_button(layout, "trash", "♜", "Trash")
 
         layout.addStretch(1)
 
@@ -58,7 +62,7 @@ class LeftMenu(QFrame):
         self.storage_label = storage_label
         self.storage_progress = progress
         self.refresh_storage()
-        self.select("home")
+        self.select("home", emit=False)
 
     def _add_section(self, layout, text):
         label = QLabel(text)
@@ -71,10 +75,11 @@ class LeftMenu(QFrame):
         layout.addWidget(button)
         button.clicked.connect(lambda checked=False, k=key: self.select(k))
 
-    def select(self, key: str):
+    def select(self, key: str, emit=True):
         for name, button in self.buttons.items():
             button.setChecked(name == key)
-        self.pageChanged.emit(key)
+        if emit:
+            self.pageChanged.emit(key)
 
     def refresh_storage(self):
         try:
