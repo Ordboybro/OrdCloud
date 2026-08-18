@@ -11,95 +11,47 @@ class FileRow(QFrame):
         super().__init__()
 
         self.data = data
-
         self.setObjectName("fileRow")
         self.setMinimumHeight(52)
         self.setMaximumHeight(58)
+        self.setCursor(Qt.PointingHandCursor)
 
         layout = QHBoxLayout(self)
-
-        layout.setContentsMargins(
-            12,
-            4,
-            12,
-            4,
-        )
-
+        layout.setContentsMargins(12, 4, 12, 4)
         layout.setSpacing(12)
 
-        self.icon = QLabel(
-            data.get("icon", "📄")
-        )
+        self.icon = QLabel(data.get("icon", "•"))
+        self.icon.setObjectName("fileIcon")
 
-        self.icon.setObjectName(
-            "fileIcon"
-        )
+        self.name = QLabel(data["name"])
+        self.name.setObjectName("fileName")
 
-        self.name = QLabel(
-            data["name"]
-        )
+        self.modified = QLabel(data.get("modified", ""))
+        self.modified.setObjectName("fileDate")
 
-        self.name.setObjectName(
-            "fileName"
-        )
+        self.size = QLabel(data.get("size", "—"))
+        self.size.setObjectName("fileSize")
 
-        self.modified = QLabel(
-            data.get("modified", "")
-        )
-
-        self.modified.setObjectName(
-            "fileDate"
-        )
-
-        self.size = QLabel(
-            data.get("size", "—")
-        )
-
-        self.size.setObjectName(
-            "fileSize"
-        )
-
-        layout.addWidget(
-            self.icon
-        )
-
-        layout.addWidget(
-            self.name,
-            1,
-        )
-
-        layout.addWidget(
-            self.modified
-        )
-
+        layout.addWidget(self.icon)
+        layout.addWidget(self.name, 1)
+        layout.addWidget(self.modified)
         layout.addSpacing(25)
-
-        layout.addWidget(
-            self.size
-        )
-
-        self.setCursor(
-            Qt.PointingHandCursor
-        )
+        layout.addWidget(self.size)
 
     def mouseDoubleClickEvent(self, event):
+        path = self.data["path"]
 
         if self.data.get("dir"):
+            self.opened.emit(path)
+        else:
+            try:
+                import os
+                os.startfile(path)
+            except OSError:
+                pass
 
-            self.opened.emit(
-                self.data["path"]
-            )
-
-        super().mouseDoubleClickEvent(
-            event
-        )
+        super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
-
-        self.selected.emit(
-            self.data
-        )
-
-        super().mousePressEvent(
-            event
-        )
+        self.selected.emit(self.data)
+        super().mousePressEvent(event)
