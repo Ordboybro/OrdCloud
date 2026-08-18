@@ -115,6 +115,11 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.activated.connect(callback)
 
+    def _focus_search(self):
+        """Focus the global search field and select its current text."""
+        self.toolbar.search.setFocus()
+        self.toolbar.search.selectAll()
+
     def _fade_in(self, widget):
         effect = QGraphicsOpacityEffect(widget)
         effect.setOpacity(0.0)
