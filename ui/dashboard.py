@@ -55,6 +55,13 @@ class QuickCard(QFrame):
         except OSError:
             return "0 files"
 
+    def refresh_count(self):
+        # The second child in the text layout is the count label.
+        for child in self.findChildren(QLabel):
+            if child.objectName() == "quickCount":
+                child.setText(self._count())
+                break
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.opened.emit(self.path_name)
@@ -154,6 +161,7 @@ class Dashboard(QWidget):
         self.setObjectName("dashboard")
         self.favorites = Favorites()
         self.recent = Recent()
+        self.quick_cards = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -182,6 +190,7 @@ class Dashboard(QWidget):
         for index, item in enumerate(cards):
             card = QuickCard(*item)
             card.opened.connect(self.folderRequested.emit)
+            self.quick_cards.append(card)
             grid.addWidget(card, 0, index)
             grid.setColumnStretch(index, 1)
 
@@ -217,12 +226,15 @@ class Dashboard(QWidget):
         header_layout.addWidget(size)
         size.setFixedWidth(70)
         header_layout.addSpacing(66)
-        table_layout.addWidget(header)
+        self.table_layout.addWidget(header)
         root.addWidget(self.table, 1)
 
         self.refresh()
 
     def refresh(self):
+        for card in self.quick_cards:
+            card.refresh_count()
+
         while self.table_layout.count() > 1:
             item = self.table_layout.takeAt(1)
             if item.widget():
@@ -242,7 +254,15 @@ class Dashboard(QWidget):
                         paths.extend(sorted(directory.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)[:2])
                     except OSError:
                         pass
-        paths = paths[:6]
+
+        unique = []
+        seen = set()
+        for path in paths:
+            key = str(path.resolve()).lower()
+            if key not in seen:
+                seen.add(key)
+                unique.append(path)
+        paths = unique[:6]
 
         if not paths:
             empty = QLabel("No recent files")
