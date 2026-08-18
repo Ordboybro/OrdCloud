@@ -12,20 +12,21 @@ class StorageSegment(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setMinimumSize(230, 230)
-        self.setMaximumHeight(230)
+        self.setMinimumSize(245, 245)
+        self.setMaximumHeight(245)
+        self.setMinimumWidth(245)
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        rect = self.rect().adjusted(22, 22, -22, -22)
+        rect = self.rect().adjusted(25, 25, -25, -25)
         sizes = StorageStats._sizes()
         values = [sizes[name] for name, _, _ in StorageStats.CATEGORIES]
         total = sum(values)
 
         if total == 0:
-            pen = QPen(QColor("#2A3442"), 17)
+            pen = QPen(QColor("#5F89FF"), 18)
             pen.setCapStyle(Qt.RoundCap)
             painter.setPen(pen)
             painter.drawArc(rect, -90 * 16, 360 * 16)
@@ -35,7 +36,7 @@ class StorageSegment(QWidget):
                 if value <= 0:
                     continue
                 angle = int(value / total * 360 * 16)
-                pen = QPen(QColor(self.COLORS[index]), 17)
+                pen = QPen(QColor(self.COLORS[index]), 18)
                 pen.setCapStyle(Qt.RoundCap)
                 painter.setPen(pen)
                 painter.drawArc(rect, start, -angle)
@@ -45,12 +46,12 @@ class StorageSegment(QWidget):
         used_gb = used / 1024 ** 3
 
         painter.setPen(QColor("#FFFFFF"))
-        font = QFont("Segoe UI", 22)
+        font = QFont("Segoe UI", 25)
         font.setBold(True)
         painter.setFont(font)
-        painter.drawText(self.rect().adjusted(0, -6, 0, -6), Qt.AlignCenter, f"{used_gb:.1f} GB")
+        painter.drawText(self.rect().adjusted(0, -7, 0, -7), Qt.AlignCenter, f"{used_gb:.1f} GB")
 
         painter.setPen(QColor("#788499"))
         small = QFont("Segoe UI", 9)
         painter.setFont(small)
-        painter.drawText(self.rect().adjusted(0, 27, 0, 27), Qt.AlignCenter, f"of {MAX_STORAGE_BYTES / 1024 ** 3:.0f} GB")
+        painter.drawText(self.rect().adjusted(0, 29, 0, 29), Qt.AlignCenter, f"of {MAX_STORAGE_BYTES / 1024 ** 3:.0f} GB")
