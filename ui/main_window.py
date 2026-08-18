@@ -1,8 +1,9 @@
 from pathlib import Path
 import os
 
+from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu
+from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu, QGraphicsOpacityEffect
 
 from config import APP_NAME, APP_VERSION, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
 from modules.clipboard import Clipboard
@@ -31,13 +32,14 @@ class MainWindow(QMainWindow):
         self.selected_item = None
         self.clipboard = Clipboard()
         self.compact_view = False
+        self._animations = []
 
         self._build_ui()
         self.ui_actions = UIActions(self)
         self._connect_signals()
         self.ui_actions.connect()
         self._setup_shortcuts()
-        self._show_home()
+        self._show_home(animate=False)
 
     def _build_ui(self):
         central = QWidget()
@@ -113,22 +115,40 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence(sequence), self)
             shortcut.activated.connect(callback)
 
-    def _focus_search(self):
-        self.toolbar.search.setFocus()
-        self.toolbar.search.selectAll()
+    def _fade_in(self, widget):
+        effect = QGraphicsOpacityEffect(widget)
+        effect.setOpacity(0.0)
+        widget.setGraphicsEffect(effect)
+        animation = QPropertyAnimation(effect, b"opacity", self)
+        animation.setDuration(160)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.OutCubic)
+        self._animations.append(animation)
+        animation.finished.connect(lambda: self._drop_animation(animation, widget))
+        animation.start()
 
-    def _show_home(self):
+    def _drop_animation(self, animation, widget):
+        if widget.graphicsEffect() is not None:
+            widget.setGraphicsEffect(None)
+        if animation in self._animations:
+            self._animations.remove(animation)
+        animation.deleteLater()
+
+    def _show_home(self, animate=True):
         self.selected_item = None
         self.dashboard.show()
-        self.dashboard.refresh()
         self.explorer.hide()
         self.navigation.hide()
         self.action_bar.hide()
         self.status_bar.hide()
         self.right_sidebar.refresh()
         self.left_menu.refresh_storage()
+        self.dashboard.refresh()
+        if animate:
+            self._fade_in(self.dashboard)
 
-    def _show_files(self):
+    def _show_files(self, animate=True):
         self.dashboard.hide()
         self.explorer.show()
         self.navigation.show()
@@ -136,6 +156,8 @@ class MainWindow(QMainWindow):
         self.status_bar.show()
         if self.explorer.current is None:
             self.explorer.open(storage_path())
+        if animate:
+            self._fade_in(self.explorer)
 
     def _open_storage_folder(self, name):
         path = storage_path() / name
@@ -191,24 +213,19 @@ class MainWindow(QMainWindow):
     def _show_context_menu(self, data):
         self.selected_item = data
         menu = QMenu(self)
-
         open_action = QAction("Open", menu)
         open_action.triggered.connect(lambda: self._open_recent_file(data["path"]))
         menu.addAction(open_action)
         menu.addSeparator()
-
         copy_action = QAction("Copy", menu)
         copy_action.triggered.connect(self.ui_actions.copy)
         menu.addAction(copy_action)
-
         rename_action = QAction("Rename", menu)
         rename_action.triggered.connect(self.ui_actions.rename)
         menu.addAction(rename_action)
-
         delete_action = QAction("Delete", menu)
         delete_action.triggered.connect(self.ui_actions.delete)
         menu.addAction(delete_action)
-
         menu.exec(self.cursor().pos())
 
     def _go_back(self):
@@ -233,7 +250,6 @@ class MainWindow(QMainWindow):
             self.explorer.refresh()
             self.status_bar.updateStatus("Ready")
             return
-
         results = []
         needle = text.strip().casefold()
         try:
@@ -251,11 +267,7 @@ class MainWindow(QMainWindow):
             return
         if page == "settings":
             self._show_home()
-            QMessageBox.information(
-                self,
-                APP_NAME,
-                f"Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: {APP_VERSION}",
-            )
+            QMessageBox.information(self, APP_NAME, f"Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: {APP_VERSION}")
             return
         if page == "trash":
             try:
@@ -263,15 +275,8 @@ class MainWindow(QMainWindow):
             except OSError:
                 QMessageBox.information(self, APP_NAME, "Recycle Bin could not be opened.")
             return
-
         self._show_files()
-        folder_map = {
-            "documents": "Documents",
-            "images": "Images",
-            "videos": "Videos",
-            "music": "Music",
-            "archives": "Archives",
-        }
+        folder_map = {"documents": "Documents", "images": "Images", "videos": "Videos", "music": "Music", "archives": "Archives"}
         if page in folder_map:
             path = storage_path() / folder_map[page]
             path.mkdir(parents=True, exist_ok=True)
@@ -294,7 +299,7 @@ class MainWindow(QMainWindow):
             except ValueError:
                 continue
             paths.append(path)
-        self._show_files()
+        self._show_files(animate=False)
         self.explorer.show_results(paths)
         self.navigation.setPath(self.explorer.current)
 
