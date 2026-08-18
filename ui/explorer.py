@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QLabel
 from PySide6.QtCore import Signal, Qt
 
 from modules.file_model import FileModel
@@ -19,6 +19,7 @@ class Explorer(QWidget):
         super().__init__()
         self.current = storage_path()
         self._compact = False
+        self._selected_row = None
         self.setAcceptDrops(True)
 
         root = QVBoxLayout(self)
@@ -40,6 +41,7 @@ class Explorer(QWidget):
         self.open(self.current)
 
     def clear(self):
+        self._selected_row = None
         while self.layout.count():
             item = self.layout.takeAt(0)
             widget = item.widget()
@@ -47,15 +49,31 @@ class Explorer(QWidget):
                 widget.deleteLater()
 
     def _add_rows(self, items):
+        if not items:
+            empty = QLabel("This folder is empty")
+            empty.setObjectName("recentEmpty")
+            empty.setAlignment(Qt.AlignCenter)
+            self.layout.addWidget(empty)
+            self.layout.addStretch()
+            self.countChanged.emit(0)
+            return
+
         for data in items:
             row = FileRow(data)
             row.set_compact(self._compact)
             row.opened.connect(self.open)
-            row.selected.connect(self.itemSelected.emit)
+            row.selected.connect(lambda value, item=row: self._select_row(item, value))
             row.contextRequested.connect(self.contextRequested.emit)
             self.layout.addWidget(row)
         self.layout.addStretch()
         self.countChanged.emit(len(items))
+
+    def _select_row(self, row, data):
+        if self._selected_row is not None:
+            self._selected_row.set_selected(False)
+        self._selected_row = row
+        row.set_selected(True)
+        self.itemSelected.emit(data)
 
     def open(self, path):
         path = Path(path)
