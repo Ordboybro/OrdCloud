@@ -9,7 +9,13 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Local user state
 data/recent.json
 data/favorites.json
+data/settings.json
 data/storage/*
 !data/storage/.gitkeep
+
+# Local logs and temporary artifacts
+*.log
+*.tmp

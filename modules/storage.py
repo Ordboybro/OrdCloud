@@ -26,6 +26,18 @@ class StorageManager:
             raise ValueError("Path escapes storage") from exc
         return target
 
+    def _raw_path(self, relative_path="") -> Path:
+        """Build an absolute path without following the final symlink."""
+        relative = Path(relative_path)
+        if relative.is_absolute():
+            raise ValueError("Absolute paths are not allowed")
+        return self.root / relative
+
+    @staticmethod
+    def _reject_symlink(path: Path) -> None:
+        if path.is_symlink():
+            raise ValueError("Symbolic links are not supported")
+
     def invalidate_stats(self):
         self._snapshot = None
         self._snapshot_at = 0.0
@@ -71,7 +83,12 @@ class StorageManager:
         except OSError:
             pass
 
-        self._snapshot = {"size": total, "files": files, "directories": directories, "categories": categories}
+        self._snapshot = {
+            "size": total,
+            "files": files,
+            "directories": directories,
+            "categories": categories.copy(),
+        }
         self._snapshot_at = now
         return {**self._snapshot, "categories": categories.copy()}
 
@@ -95,18 +112,21 @@ class StorageManager:
         if not name or Path(name).name != name or name in {".", ".."}:
             raise ValueError("Invalid folder name")
         parent_path = self.resolve(parent)
+        self._reject_symlink(parent_path)
         if not parent_path.is_dir():
             raise NotADirectoryError(parent_path)
-        target = (parent_path / name).resolve()
-        try:
-            target.relative_to(self.root)
-        except ValueError as exc:
-            raise ValueError("Path escapes storage") from exc
+        target = parent_path / name
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(target)
         target.mkdir(parents=False, exist_ok=False)
         self.invalidate_stats()
-        return target
+        return target.resolve()
 
     def delete(self, relative_path):
+        raw = self._raw_path(relative_path)
+        if raw == self.root:
+            raise ValueError("Cannot delete storage root")
+        self._reject_symlink(raw)
         target = self.resolve(relative_path)
         if target == self.root:
             raise ValueError("Cannot delete storage root")
@@ -114,33 +134,42 @@ class StorageManager:
             shutil.rmtree(target)
         elif target.exists():
             target.unlink()
+        else:
+            raise FileNotFoundError(target)
         self.invalidate_stats()
 
     def rename(self, relative_path, new_name):
         new_name = new_name.strip()
         if not new_name or Path(new_name).name != new_name or new_name in {".", ".."}:
             raise ValueError("Invalid name")
+        raw = self._raw_path(relative_path)
+        self._reject_symlink(raw)
         target = self.resolve(relative_path)
         if target == self.root:
             raise ValueError("Cannot rename storage root")
         if not target.exists():
             raise FileNotFoundError(target)
-        new_path = (target.parent / new_name).resolve()
+        new_path = target.parent / new_name
+        if new_path.exists() or new_path.is_symlink():
+            raise FileExistsError("Target already exists")
+        new_path = new_path.resolve()
         try:
             new_path.relative_to(self.root)
         except ValueError as exc:
             raise ValueError("Path escapes storage") from exc
-        if new_path.exists():
-            raise FileExistsError("Target already exists")
         target.rename(new_path)
         self.invalidate_stats()
         return new_path
 
     def copy_file(self, source, destination):
-        source = Path(source).resolve()
-        if not source.is_file() or source.is_symlink():
+        source = Path(source)
+        if source.is_symlink():
+            raise ValueError("Symbolic links are not supported")
+        source = source.resolve()
+        if not source.is_file():
             raise FileNotFoundError(source)
         destination = self.resolve(destination)
+        self._reject_symlink(destination)
         if destination == source:
             raise ValueError("Source and destination are identical")
         if destination.exists():
@@ -153,10 +182,14 @@ class StorageManager:
         return destination
 
     def move_file(self, source, destination):
-        source = Path(source).resolve()
-        if not source.is_file() or source.is_symlink():
+        source = Path(source)
+        if source.is_symlink():
+            raise ValueError("Symbolic links are not supported")
+        source = source.resolve()
+        if not source.is_file():
             raise FileNotFoundError(source)
         destination = self.resolve(destination)
+        self._reject_symlink(destination)
         if destination == source:
             raise ValueError("Source and destination are identical")
         if destination.exists():
