@@ -1,5 +1,8 @@
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit
+
+from config import ICONS_DIR
 
 
 class SearchBox(QFrame):
@@ -10,11 +13,13 @@ class SearchBox(QFrame):
         self.setObjectName("searchBox")
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 4, 14, 4)
+        layout.setContentsMargins(16, 4, 14, 4)
         layout.setSpacing(10)
 
-        icon = QLabel("⌕")
+        icon = QLabel()
         icon.setObjectName("searchIcon")
+        icon.setFixedSize(22, 22)
+        icon.setPixmap(QIcon(str(ICONS_DIR / "ui_search.svg")).pixmap(QSize(22, 22)))
         layout.addWidget(icon)
 
         self.edit = QLineEdit()
