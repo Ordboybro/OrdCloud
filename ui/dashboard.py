@@ -1,14 +1,15 @@
 from pathlib import Path
 from datetime import datetime
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from config import ICONS_DIR
 from modules.favorites import Favorites
 from modules.recent import Recent
 from modules.storage_service import storage_path
+from ui.file_type_icon import FileTypeIcon
 
 
 class QuickCard(QFrame):
@@ -30,9 +31,9 @@ class QuickCard(QFrame):
         icon_label.setObjectName("quickIcon")
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setFixedSize(64, 64)
-        pixmap = QPixmap(str(ICONS_DIR / icon_name))
+        pixmap = QIcon(str(ICONS_DIR / icon_name)).pixmap(QSize(64, 64))
         if not pixmap.isNull():
-            icon_label.setPixmap(pixmap.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            icon_label.setPixmap(pixmap)
         layout.addWidget(icon_label, alignment=Qt.AlignCenter)
 
         name = QLabel(title)
@@ -76,12 +77,8 @@ class RecentRow(QFrame):
         layout.setContentsMargins(16, 7, 14, 7)
         layout.setSpacing(14)
 
-        icon = "■" if path.is_dir() else {".jpg": "▣", ".jpeg": "▣", ".png": "▣", ".pdf": "▤", ".docx": "▥", ".xlsx": "▦", ".zip": "▥"}.get(path.suffix.lower(), "▤")
-        icon_label = QLabel(icon)
-        icon_label.setObjectName("recentIcon")
-        icon_label.setFixedSize(42, 42)
-        icon_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(icon_label)
+        icon = FileTypeIcon(path)
+        layout.addWidget(icon)
 
         name_label = QLabel(path.name)
         name_label.setObjectName("recentName")
@@ -108,6 +105,7 @@ class RecentRow(QFrame):
         self.star.setObjectName("recentStar")
         self.star.setFixedSize(36, 36)
         self.star.setCursor(Qt.PointingHandCursor)
+        self.star.setToolTip("Убрать из избранного" if favorites.contains(str(path)) else "Добавить в избранное")
         self.star.clicked.connect(self._toggle_favorite)
         layout.addWidget(self.star)
 
@@ -115,6 +113,7 @@ class RecentRow(QFrame):
         more.setObjectName("recentMore")
         more.setFixedSize(36, 36)
         more.setCursor(Qt.PointingHandCursor)
+        more.setToolTip("Открыть")
         more.clicked.connect(lambda: self.opened.emit(str(path)))
         layout.addWidget(more)
 
@@ -143,10 +142,12 @@ class RecentRow(QFrame):
         if self.favorites.contains(value):
             self.favorites.remove(value)
             self.star.setText("☆")
+            self.star.setToolTip("Добавить в избранное")
             self.favoriteChanged.emit(value, False)
         else:
             self.favorites.add(value)
             self.star.setText("★")
+            self.star.setToolTip("Убрать из избранного")
             self.favoriteChanged.emit(value, True)
 
     def mousePressEvent(self, event):
@@ -179,13 +180,19 @@ class Dashboard(QWidget):
         title_row.addWidget(title)
         title_row.addStretch(1)
 
-        new_folder = QPushButton("□  Новая папка")
+        new_folder = QPushButton("Новая папка")
         new_folder.setObjectName("secondaryAction")
+        new_folder.setIcon(QIcon(str(ICONS_DIR / "action_new_folder.svg")))
+        new_folder.setIconSize(QSize(20, 20))
+        new_folder.setCursor(Qt.PointingHandCursor)
         new_folder.clicked.connect(self.newFolderRequested.emit)
         title_row.addWidget(new_folder)
 
-        upload = QPushButton("↥  Загрузить")
+        upload = QPushButton("Загрузить")
         upload.setObjectName("primaryAction")
+        upload.setIcon(QIcon(str(ICONS_DIR / "ui_upload.svg")))
+        upload.setIconSize(QSize(20, 20))
+        upload.setCursor(Qt.PointingHandCursor)
         upload.clicked.connect(self.uploadRequested.emit)
         title_row.addWidget(upload)
         root.addLayout(title_row)
@@ -216,6 +223,7 @@ class Dashboard(QWidget):
         recent_header.addStretch(1)
         show_all = QPushButton("Показать все")
         show_all.setObjectName("showAll")
+        show_all.setCursor(Qt.PointingHandCursor)
         show_all.clicked.connect(self.showAllRequested.emit)
         recent_header.addWidget(show_all)
         root.addLayout(recent_header)
