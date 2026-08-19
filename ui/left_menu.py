@@ -43,7 +43,7 @@ class LeftMenu(QFrame):
         settings.clicked.connect(lambda: self.pageChanged.emit("settings"))
         layout.addWidget(settings)
 
-        storage_label = QLabel("Использовано 0 ГБ из 5 ГБ")
+        storage_label = QLabel("Использовано 0 Б из 5 ГБ")
         storage_label.setObjectName("storageLabel")
         layout.addWidget(storage_label)
 
@@ -84,7 +84,7 @@ class LeftMenu(QFrame):
 
     def refresh_storage(self):
         try:
-            used = storage.get_size()
+            used = storage.get_snapshot()["size"]
         except OSError:
             used = 0
         percent = min(100, int(used / MAX_STORAGE_BYTES * 100)) if MAX_STORAGE_BYTES else 0
