@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QPushButton
 
@@ -14,9 +12,8 @@ class MenuButton(QPushButton):
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(48)
         self.setCheckable(True)
-        self.setIconSize(Qt.QSize(21, 21))
+        self.setIconSize(QSize(21, 21))
 
         icon_path = ICONS_DIR / icon
         if icon_path.exists():
             self.setIcon(QIcon(str(icon_path)))
-
