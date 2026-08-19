@@ -4,6 +4,7 @@ import shutil
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 from modules.recent import Recent
+from modules.settings import Settings
 from modules.storage_service import storage, storage_path
 
 
@@ -159,6 +160,16 @@ class UIActions:
         self.window.clipboard.copy(path)
         self.window.status_bar.updateStatus("Скопировано")
 
+    def cut(self):
+        path = self._selected_path()
+        if not path:
+            return
+        if path == storage_path().resolve():
+            QMessageBox.warning(self.window, "OrdCloud", "Нельзя вырезать корень хранилища.")
+            return
+        self.window.clipboard.cut(path)
+        self.window.status_bar.updateStatus("Вырезано — выбери папку назначения и нажми Ctrl+V")
+
     def paste(self):
         current = self._current_path()
         if current is None:
@@ -172,6 +183,7 @@ class UIActions:
         source = Path(clipboard.path).resolve()
         if not source.exists():
             clipboard.clear()
+            self._refresh()
             return
 
         try:
@@ -183,6 +195,7 @@ class UIActions:
 
         destination = (current / source.name).resolve()
         if source == destination:
+            self.window.status_bar.updateStatus("Источник и назначение совпадают")
             return
         if source.is_dir():
             try:
@@ -241,14 +254,15 @@ class UIActions:
         if not path:
             return
 
-        answer = QMessageBox.question(
-            self.window,
-            "Удалить",
-            f"Переместить «{path.name}» в корзину?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if answer != QMessageBox.Yes:
-            return
+        if Settings().get("confirm_delete", True):
+            answer = QMessageBox.question(
+                self.window,
+                "Удалить",
+                f"Переместить «{path.name}» в корзину?",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if answer != QMessageBox.Yes:
+                return
 
         try:
             from send2trash import send2trash
