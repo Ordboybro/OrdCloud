@@ -1,9 +1,13 @@
 import json
 from pathlib import Path
 
+from config import DATA_DIR
+
 
 class Settings:
-    FILE = Path("data/settings.json")
+    """Small persistent settings store with safe, project-relative storage."""
+
+    FILE = DATA_DIR / "settings.json"
 
     DEFAULT = {
         "theme": "dark",
@@ -13,6 +17,8 @@ class Settings:
         "sidebar": True,
         "confirm_delete": True,
         "show_extensions": True,
+        "sort_by": "name",
+        "sort_reverse": False,
     }
 
     def __init__(self):
@@ -31,7 +37,7 @@ class Settings:
 
     def save(self, data: dict) -> None:
         payload = {**self.DEFAULT, **data}
-        temporary = self.FILE.with_suffix(".tmp")
+        temporary = self.FILE.with_name(f"{self.FILE.name}.tmp")
         temporary.write_text(
             json.dumps(payload, indent=4, ensure_ascii=False),
             encoding="utf-8",
@@ -45,3 +51,6 @@ class Settings:
         data = self.load()
         data[key] = value
         self.save(data)
+
+    def reset(self) -> None:
+        self.save(self.DEFAULT)
