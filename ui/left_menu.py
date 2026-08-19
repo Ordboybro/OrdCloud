@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QProgressBar
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 from config import MAX_STORAGE_BYTES
 from modules.storage_service import storage
