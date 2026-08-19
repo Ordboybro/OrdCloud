@@ -2,30 +2,26 @@ from pathlib import Path
 
 
 class Search:
+    """Case-insensitive, storage-safe filesystem name search."""
 
     @staticmethod
-    def find(
-        folder: str | Path,
-        text: str,
-    ) -> list[Path]:
-
+    def find(folder: str | Path, text: str) -> list[Path]:
         folder = Path(folder)
-
-        if not text:
+        query = text.strip().casefold()
+        if not query or not folder.is_dir():
             return []
 
-        text = text.lower()
-
         result = []
-
         try:
             for item in folder.rglob("*"):
-                if text in item.name.lower():
-                    result.append(item)
-        except (
-            PermissionError,
-            OSError,
-        ):
+                try:
+                    if item.is_symlink():
+                        continue
+                    if query in item.name.casefold():
+                        result.append(item)
+                except OSError:
+                    continue
+        except (PermissionError, OSError):
             pass
 
         return result
