@@ -30,39 +30,16 @@ class StorageManager:
         self._snapshot = None
         self._snapshot_at = 0.0
 
-    def get_size(self) -> int:
-        total = 0
-        try:
-            for path in self.root.rglob("*"):
-                try:
-                    if path.is_file():
-                        total += path.stat().st_size
-                except OSError:
-                    continue
-        except OSError:
-            return total
-        return total
-
     def get_snapshot(self, force=False):
-        """Return one cached filesystem scan for all storage statistics.
-
-        UI widgets request the same statistics several times during a refresh.
-        A short cache avoids scanning a large storage tree repeatedly while
-        still refreshing automatically when the cache expires.
-        """
+        """Return one short-lived filesystem scan shared by all statistics."""
         now = time.monotonic()
         if not force and self._snapshot is not None and now - self._snapshot_at < self._SNAPSHOT_TTL:
-            return self._snapshot.copy()
+            return {**self._snapshot, "categories": self._snapshot["categories"].copy()}
 
         total = 0
         files = 0
         directories = 0
-        categories = {
-            "Документы": 0,
-            "Изображения": 0,
-            "Видео": 0,
-            "Другое": 0,
-        }
+        categories = {"Документы": 0, "Изображения": 0, "Видео": 0, "Другое": 0}
         document_exts = {".txt", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".py", ".json", ".md"}
         image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"}
         video_exts = {".mp4", ".mkv", ".avi", ".mov", ".webm"}
@@ -70,6 +47,8 @@ class StorageManager:
         try:
             for path in self.root.rglob("*"):
                 try:
+                    if path.is_symlink():
+                        continue
                     if path.is_dir():
                         directories += 1
                         continue
@@ -92,14 +71,12 @@ class StorageManager:
         except OSError:
             pass
 
-        self._snapshot = {
-            "size": total,
-            "files": files,
-            "directories": directories,
-            "categories": categories,
-        }
+        self._snapshot = {"size": total, "files": files, "directories": directories, "categories": categories}
         self._snapshot_at = now
-        return self._snapshot.copy()
+        return {**self._snapshot, "categories": categories.copy()}
+
+    def get_size(self) -> int:
+        return self.get_snapshot()["size"]
 
     def get_free(self) -> int:
         return max(0, self.max_bytes - self.get_size())
@@ -111,15 +88,11 @@ class StorageManager:
 
     def can_add(self, size: int) -> bool:
         size = int(size)
-        if size < 0:
-            return False
-        return self.get_size() + size <= self.max_bytes
+        return size >= 0 and self.get_size() + size <= self.max_bytes
 
     def create_folder(self, parent="", name="New Folder"):
         name = name.strip()
-        if not name:
-            raise ValueError("Folder name cannot be empty")
-        if Path(name).name != name or name in {".", ".."}:
+        if not name or Path(name).name != name or name in {".", ".."}:
             raise ValueError("Invalid folder name")
         parent_path = self.resolve(parent)
         if not parent_path.is_dir():
@@ -145,9 +118,7 @@ class StorageManager:
 
     def rename(self, relative_path, new_name):
         new_name = new_name.strip()
-        if not new_name:
-            raise ValueError("New name cannot be empty")
-        if Path(new_name).name != new_name or new_name in {".", ".."}:
+        if not new_name or Path(new_name).name != new_name or new_name in {".", ".."}:
             raise ValueError("Invalid name")
         target = self.resolve(relative_path)
         if target == self.root:
@@ -167,7 +138,7 @@ class StorageManager:
 
     def copy_file(self, source, destination):
         source = Path(source).resolve()
-        if not source.is_file():
+        if not source.is_file() or source.is_symlink():
             raise FileNotFoundError(source)
         destination = self.resolve(destination)
         if destination == source:
@@ -183,7 +154,7 @@ class StorageManager:
 
     def move_file(self, source, destination):
         source = Path(source).resolve()
-        if not source.is_file():
+        if not source.is_file() or source.is_symlink():
             raise FileNotFoundError(source)
         destination = self.resolve(destination)
         if destination == source:
