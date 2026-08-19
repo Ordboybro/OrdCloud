@@ -89,7 +89,6 @@ OrdCloud/
 │   ├── file_model.py
 │   ├── recent.py
 │   ├── search_worker.py
-│   ├── recent.py
 │   ├── storage.py
 │   ├── storage_service.py
 │   └── ui_actions.py
