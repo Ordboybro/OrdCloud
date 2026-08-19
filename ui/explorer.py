@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QLabel
 from PySide6.QtCore import Signal, Qt
 
 from modules.file_model import FileModel
+from modules.file_icons import FileIcons
 from modules.storage_service import storage_path
 from ui.file_row import FileRow
 
@@ -74,7 +75,7 @@ class Explorer(QWidget):
         self.countChanged.emit(len(items))
 
     def _select_row(self, row, data):
-        if self._selected_row is not None:
+        if self._selected_row is not None and self._selected_row is not row:
             self._selected_row.set_selected(False)
         self._selected_row = row
         row.set_selected(True)
@@ -86,7 +87,7 @@ class Explorer(QWidget):
             path.resolve().relative_to(storage_path().resolve())
         except ValueError:
             return
-        if not path.exists() or not path.is_dir():
+        if path.is_symlink() or not path.exists() or not path.is_dir():
             return
 
         self.current = path
@@ -98,20 +99,28 @@ class Explorer(QWidget):
     def show_results(self, paths):
         self.clear()
         items = []
+        root = storage_path().resolve()
         for path in paths:
             path = Path(path)
             try:
-                path.resolve().relative_to(storage_path().resolve())
+                resolved = path.resolve()
+                resolved.relative_to(root)
+                if path.is_symlink():
+                    continue
                 stat = path.stat()
             except (ValueError, OSError):
                 continue
+            is_dir = path.is_dir()
             items.append({
                 "name": path.name,
-                "icon": "▣" if path.is_dir() else "▤",
-                "size": "—" if path.is_dir() else self._format_size(stat.st_size),
-                "modified": stat.st_mtime,
+                "icon": FileIcons.emoji(path),
+                "icon_name": FileIcons.name(path),
+                "size": "—" if is_dir else self._format_size(stat.st_size),
+                "bytes": 0 if is_dir else stat.st_size,
+                "modified": "",
+                "timestamp": stat.st_mtime,
                 "path": str(path),
-                "dir": path.is_dir(),
+                "dir": is_dir,
             })
         self._add_rows(items)
 
