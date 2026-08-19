@@ -1,87 +1,139 @@
-# OrdCloud
+# ☁️ OrdCloud
 
-**OrdCloud** is a local-first desktop file-storage application built with **Python + PySide6**. It combines a polished dark cloud-drive interface with real local file management.
+> **A polished local-first cloud-drive style file manager for Windows, built with Python and PySide6.**
 
-> Current version: **0.6.0**
+[![CI](https://github.com/Ordboybro/OrdCloud/actions/workflows/ci.yml/badge.svg)](https://github.com/Ordboybro/OrdCloud/actions/workflows/ci.yml)
 
-## What it does
+OrdCloud is a desktop file manager designed to feel like a modern cloud drive while keeping files **local and private**. It combines a dark, cloud-style interface with real filesystem operations, a sandboxed storage area, search, favorites, recent files, drag & drop, keyboard shortcuts and cached storage analytics.
 
-- Reference-matched dark dashboard UI
-- Russian interface and cloud-drive style navigation
-- Local sandboxed storage under `data/storage`
-- Configurable 5 GB storage quota
-- Quick Access dashboard with Documents, Photos, Video, Presentations and Archives
-- Recent files and favorites
-- Folder navigation and breadcrumbs
-- Upload and drag & drop
-- Create folders
-- Copy / paste
-- Rename
-- Delete to the Windows Recycle Bin
-- Recursive search with debounce and background worker execution
-- Search result race protection so stale results cannot overwrite newer navigation
-- Compact view
-- Context menu with favorites
-- Back / forward navigation
-- Keyboard shortcuts
-- Shared cached storage statistics to avoid repeated filesystem scans
-- Painted file-type icons for consistent rendering
-- Safe path validation so file operations stay inside the storage sandbox
-- Smooth lightweight page transitions
-- Automated compile, storage tests and offscreen UI smoke checks in GitHub Actions
+**Current release:** `0.7.0`  
+**Platform:** Windows  
+**Language:** Russian  
+**Architecture:** local-first desktop application
 
-## Keyboard shortcuts
+---
 
-| Shortcut | Action |
+## ✨ Features
+
+### File management
+
+- 📁 Create folders
+- ⬆️ Upload files
+- 🖱️ Drag & drop
+- 📋 Copy / paste
+- ✂️ Cut / move
+- ✏️ Rename
+- 🗑️ Delete to the Windows Recycle Bin
+- ⭐ Favorites
+- 🕘 Recent files
+- 🔎 Recursive background search
+- ↩️ Back / forward navigation
+- 🔃 Refresh
+- 📊 Storage usage and category statistics
+
+### Interface
+
+- Dark cloud-drive inspired dashboard
+- Sidebar navigation
+- Breadcrumb navigation
+- Quick Access cards
+- Recent files table
+- Storage analytics panel
+- Upload area
+- Context menus
+- List and compact views
+- Lightweight transitions
+- Tooltips and hover states
+- Russian UI
+
+### Safety
+
+- Files are restricted to the local `data/storage` sandbox
+- Root storage cannot be deleted or renamed
+- Invalid/path-traversal names are rejected
+- Symlinks are ignored by storage accounting/search
+- Existing copy destinations are rejected instead of silently overwritten
+- Storage quota is checked before adding data
+- Search results are protected against stale asynchronous responses
+
+### Performance
+
+- Search runs outside the UI thread
+- Search input is debounced
+- Filesystem statistics use a shared short-lived snapshot
+- Mutating operations invalidate the statistics cache
+- UI refreshes are kept local where possible
+
+---
+
+## 🖼️ Screenshots
+
+The repository contains the design reference and the latest application capture:
+
+- `screenshots/1.png` — target/reference design
+- `screenshots/current.png` — latest local build
+
+---
+
+## 🛠️ Tech stack
+
+| Technology | Purpose |
 |---|---|
-| `Ctrl+F` | Focus search |
-| `Ctrl+N` | New folder |
-| `Ctrl+U` | Upload files |
-| `Ctrl+C` | Copy selected item |
-| `Ctrl+V` | Paste |
-| `F2` | Rename selected item |
-| `Delete` | Move selected item to Recycle Bin |
-| `Alt+←` | Back |
-| `Alt+→` | Forward |
-| `F5` | Refresh |
-| `Escape` | Clear selection |
+| Python 3.11+ | Application language |
+| PySide6 / Qt | Desktop UI |
+| Send2Trash | Safe deletion to Recycle Bin |
+| unittest | Automated tests |
+| GitHub Actions | CI quality checks |
 
-## Tech stack
+---
 
-- Python 3.11+
-- PySide6 / Qt
-- Send2Trash
-- `unittest` for storage tests
-- GitHub Actions for automated quality checks
+## 🚀 Installation
 
-## Installation
+Clone the repository and create a virtual environment:
 
 ```powershell
+git clone https://github.com/Ordboybro/OrdCloud.git
+cd OrdCloud
+
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python main.py
 ```
 
-If PowerShell blocks script activation, run the project without activation:
+If PowerShell does not allow script activation, activation is not required:
 
 ```powershell
 .venv\Scripts\python.exe main.py
 ```
 
-## Quality checks
+---
 
-```powershell
-python -m compileall .
-python -m unittest discover -s tests -v
-```
+## ⌨️ Keyboard shortcuts
 
-## Project structure
+| Shortcut | Action |
+|---|---|
+| `Ctrl+F` | Focus search |
+| `Ctrl+N` | New folder |
+| `Ctrl+U` | Upload files |
+| `Ctrl+C` | Copy |
+| `Ctrl+X` | Cut / move |
+| `Ctrl+V` | Paste |
+| `F2` | Rename |
+| `Delete` | Move to Recycle Bin |
+| `Alt+←` | Back |
+| `Alt+→` | Forward |
+| `F5` | Refresh |
+| `Escape` | Clear selection |
+
+---
+
+## 🧱 Project structure
 
 ```text
 OrdCloud/
-├── config.py
 ├── main.py
+├── config.py
 ├── requirements.txt
 ├── modules/
 │   ├── clipboard.py
@@ -89,11 +141,11 @@ OrdCloud/
 │   ├── file_model.py
 │   ├── recent.py
 │   ├── search_worker.py
+│   ├── settings.py
 │   ├── storage.py
 │   ├── storage_service.py
 │   └── ui_actions.py
 ├── ui/
-│   ├── action_bar.py
 │   ├── dashboard.py
 │   ├── explorer.py
 │   ├── file_row.py
@@ -103,50 +155,121 @@ OrdCloud/
 │   ├── navigation.py
 │   ├── right_sidebar.py
 │   ├── search_box.py
-│   ├── status_bar.py
 │   ├── storage_panel.py
-│   ├── storage_segment.py
-│   ├── storage_stats.py
 │   └── top_toolbar.py
 ├── resources/
 │   ├── icons/
 │   └── style.qss
 ├── tests/
 │   └── test_storage.py
-├── screenshots/
-└── data/
-    └── storage/
+└── screenshots/
 ```
 
-## Architecture
+---
 
-The project separates responsibilities into small modules:
+## 🧠 Architecture
 
-- `modules/storage.py` — safe filesystem primitives and shared storage statistics
-- `modules/storage_service.py` — application storage configuration
-- `modules/search_worker.py` — non-blocking recursive search worker
-- `modules/ui_actions.py` — commands initiated by the interface
-- `modules/file_model.py` — converts filesystem entries into UI data
-- `ui/main_window.py` — application shell, navigation, search and shortcuts
-- `ui/dashboard.py` — Home dashboard
-- `ui/explorer.py` — file browser
-- `ui/file_type_icon.py` — consistent file/folder icon rendering
-- `resources/style.qss` — visual system
+OrdCloud follows a small modular architecture rather than putting all application logic into the window class.
 
-OrdCloud is intentionally **local-first**: it does not require an account, external server, or cloud API.
+```text
+                  ┌─────────────────┐
+                  │   PySide6 UI    │
+                  └────────┬────────┘
+                           │
+                  ┌────────▼────────┐
+                  │  UI actions /   │
+                  │ application flow│
+                  └────────┬────────┘
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+      ┌──────▼──────┐             ┌──────▼──────┐
+      │   Storage   │             │    Search   │
+      │    layer    │             │    worker   │
+      └──────┬──────┘             └─────────────┘
+             │
+      ┌──────▼──────┐
+      │ data/storage│
+      └─────────────┘
+```
 
-## Development
+The application is deliberately **local-first**. There is no account, cloud API or external server required to use it.
 
-Before committing changes, run:
+---
+
+## 🧪 Quality checks
+
+Run the compiler check:
 
 ```powershell
-python -m compileall .
+python -m compileall -q main.py config.py modules ui
+```
+
+Run the test suite:
+
+```powershell
 python -m unittest discover -s tests -v
+```
+
+Run the application:
+
+```powershell
 python main.py
 ```
 
-The reference image is stored in `screenshots/1.png`; `screenshots/current.png` is the latest local application capture.
+GitHub Actions automatically performs the project's quality checks on relevant code changes.
 
-## License
+---
 
-This repository is currently a personal portfolio project. Add a license before distributing OrdCloud as reusable software.
+## 🔒 Privacy
+
+OrdCloud is local-first. Files remain inside the local application storage directory unless the user explicitly moves or copies them elsewhere.
+
+No account or cloud service is required.
+
+---
+
+## 📌 Roadmap
+
+### v1.0 — Desktop foundation
+
+- [x] Modern cloud-drive UI
+- [x] Local sandboxed storage
+- [x] File management
+- [x] Search
+- [x] Favorites and recent files
+- [x] Storage analytics
+- [x] Settings
+- [x] Keyboard shortcuts
+- [x] Automated tests and CI
+
+### v2.0 — Cloud edition
+
+A future version can add a real backend without compromising the desktop architecture:
+
+```text
+OrdCloud Desktop
+       │ HTTPS
+       ▼
+   FastAPI API
+       │
+       ├── PostgreSQL
+       │
+       └── Object Storage
+```
+
+Possible future capabilities include accounts, authentication, synchronization, remote storage, sharing links and a web/mobile client.
+
+---
+
+## 📄 License
+
+This repository is currently a personal portfolio project. A formal open-source license should be added before redistributing the software.
+
+---
+
+## 👤 Author
+
+**Ordboybro**
+
+Built as a portfolio project to practice Python, PySide6, filesystem architecture, testing, Git/GitHub and software engineering.
