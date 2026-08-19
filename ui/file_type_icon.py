@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtCore import Qt, QPoint
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPolygon
 from PySide6.QtWidgets import QWidget
 
 
@@ -43,7 +43,8 @@ class FileTypeIcon(QWidget):
             painter.setBrush(QColor("#d7e6f7"))
             painter.drawEllipse(11, 10, 7, 7)
             painter.setBrush(QColor("#8fc28f"))
-            painter.drawPolygon([(6, 34), (16, 24), (23, 30), (29, 23), (38, 34)])
+            polygon = QPolygon([QPoint(6, 34), QPoint(16, 24), QPoint(23, 30), QPoint(29, 23), QPoint(38, 34)])
+            painter.drawPolygon(polygon)
             return
 
         color, glyph = colors.get(ext, ("#536170", "•"))
