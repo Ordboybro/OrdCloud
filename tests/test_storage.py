@@ -86,6 +86,24 @@ class StorageManagerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.storage.rename("Good", "../bad")
 
+    def test_symlinks_are_never_followed_by_mutations(self):
+        target = Path(self.temp_dir.name) / "outside.txt"
+        target.write_text("outside", encoding="utf-8")
+        link = self.root / "link.txt"
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError):
+            self.skipTest("Symlink creation is not available on this system")
+
+        with self.assertRaises(ValueError):
+            self.storage.delete("link.txt")
+        with self.assertRaises(ValueError):
+            self.storage.rename("link.txt", "renamed.txt")
+        with self.assertRaises(ValueError):
+            self.storage.copy_file(link, "copy.txt")
+        self.assertTrue(target.exists())
+        self.assertEqual(self.storage.get_snapshot(force=True)["size"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
