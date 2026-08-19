@@ -1,6 +1,8 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
 
+from config import ICONS_DIR
 from ui.storage_panel import StoragePanel
 
 
@@ -14,8 +16,8 @@ class RightSidebar(QFrame):
         self.setFixedWidth(286)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(18, 18, 32, 28)
+        layout.setSpacing(14)
 
         self.storage = StoragePanel()
         layout.addWidget(self.storage)
@@ -28,12 +30,13 @@ class RightSidebar(QFrame):
         self.upload_box.setObjectName("uploadBox")
         self.upload_box.setCursor(Qt.PointingHandCursor)
         upload_layout = QVBoxLayout(self.upload_box)
-        upload_layout.setContentsMargins(12, 18, 12, 18)
+        upload_layout.setContentsMargins(12, 16, 12, 16)
         upload_layout.setSpacing(5)
 
-        icon = QLabel("♧")
+        icon = QLabel()
         icon.setObjectName("uploadIcon")
         icon.setAlignment(Qt.AlignCenter)
+        icon.setPixmap(QIcon(str(ICONS_DIR / "ui_upload.svg")).pixmap(QSize(40, 40)))
         text = QLabel("Перетащите файлы сюда")
         text.setObjectName("uploadText")
         text.setAlignment(Qt.AlignCenter)
