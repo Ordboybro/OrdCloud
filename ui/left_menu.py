@@ -12,43 +12,38 @@ class LeftMenu(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("leftMenu")
-        self.setFixedWidth(205)
+        self.setFixedWidth(310)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 16, 18, 15)
-        layout.setSpacing(1)
-
-        logo = QLabel("ORDCLOUD")
-        logo.setObjectName("logo")
-        layout.addWidget(logo)
-        layout.addSpacing(18)
-
+        layout.setContentsMargins(20, 16, 20, 24)
+        layout.setSpacing(3)
         self.buttons = {}
-        self._add_button(layout, "home", "⌂", "Home")
-        self._add_button(layout, "recent", "◷", "Recent")
-        self._add_button(layout, "favorites", "☆", "Favorites")
 
-        layout.addSpacing(12)
-        self._add_section(layout, "Files")
-        self._add_button(layout, "files", "▱", "My Files")
-        self._add_button(layout, "documents", "▤", "Documents")
-        self._add_button(layout, "images", "▧", "Photo")
-        self._add_button(layout, "videos", "▷", "Video")
-        self._add_button(layout, "music", "♫", "Music")
-        self._add_button(layout, "archives", "▥", "Archives")
+        self._add_button(layout, "home", "⌂", "Главная")
+        self._add_button(layout, "recent", "◷", "Недавние")
+        self._add_button(layout, "favorites", "☆", "Помеченные")
 
-        layout.addSpacing(12)
-        self._add_section(layout, "Other")
-        self._add_button(layout, "trash", "♜", "Trash")
+        layout.addSpacing(18)
+        self._add_section(layout, "Файлы")
+        self._add_button(layout, "files", "□", "Все файлы")
+        self._add_button(layout, "documents", "▤", "Документы")
+        self._add_button(layout, "images", "▧", "Фото")
+        self._add_button(layout, "videos", "▷", "Видео")
+        self._add_button(layout, "music", "♫", "Музыка")
+        self._add_button(layout, "archives", "▥", "Архивы")
+
+        layout.addSpacing(18)
+        self._add_section(layout, "Другое")
+        self._add_button(layout, "trash", "♜", "Корзина")
 
         layout.addStretch(1)
 
-        settings = MenuButton("⚙", "Settings")
+        settings = MenuButton("⚙", "Настройки")
         self.buttons["settings"] = settings
         settings.clicked.connect(lambda: self.pageChanged.emit("settings"))
         layout.addWidget(settings)
 
-        storage_label = QLabel("Used 0 B of 5 GB")
+        storage_label = QLabel("Использовано 0 Б из 5 ГБ")
         storage_label.setObjectName("storageLabel")
         layout.addWidget(storage_label)
 
@@ -84,18 +79,18 @@ class LeftMenu(QFrame):
     def refresh_storage(self):
         try:
             used = storage.get_size()
-        except Exception:
+        except OSError:
             used = 0
         percent = min(100, int(used / MAX_STORAGE_BYTES * 100)) if MAX_STORAGE_BYTES else 0
         self.storage_progress.setValue(percent)
-        self.storage_label.setText(f"Used {self._format_size(used)} of 5 GB")
+        self.storage_label.setText(f"Использовано {self._format_size(used)} из 5 ГБ")
 
     @staticmethod
     def _format_size(size):
         if size < 1024:
-            return f"{size} B"
+            return f"{size} Б"
         if size < 1024 ** 2:
-            return f"{size / 1024:.1f} KB"
+            return f"{size / 1024:.1f} КБ"
         if size < 1024 ** 3:
-            return f"{size / 1024 ** 2:.1f} MB"
-        return f"{size / 1024 ** 3:.1f} GB"
+            return f"{size / 1024 ** 2:.1f} МБ"
+        return f"{size / 1024 ** 3:.1f} ГБ"
