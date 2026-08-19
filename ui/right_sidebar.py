@@ -17,7 +17,7 @@ class RightSidebar(QFrame):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 104, 32, 28)
-        layout.setSpacing(14)
+        layout.setSpacing(64)
 
         self.storage = StoragePanel()
         self.storage.upgradeRequested.connect(self.upgradeRequested.emit)
@@ -55,7 +55,6 @@ class RightSidebar(QFrame):
         self.upload_box.mousePressEvent = self._browse
         upload_layout.addWidget(self.upload_box)
         layout.addWidget(upload_container)
-        layout.addStretch(1)
 
     def _browse(self, event):
         if event.button() == Qt.LeftButton:
