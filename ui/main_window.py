@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu, QGraphicsOpacityEffect
 
@@ -50,36 +50,44 @@ class MainWindow(QMainWindow):
         central.setObjectName("appRoot")
         self.setCentralWidget(central)
 
-        root = QHBoxLayout(central)
-        root.setContentsMargins(16, 14, 16, 14)
-        root.setSpacing(14)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self.toolbar = TopToolbar()
+        root.addWidget(self.toolbar)
+
+        body = QWidget()
+        body.setObjectName("mainBody")
+        body_layout = QHBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
 
         self.left_menu = LeftMenu()
-        root.addWidget(self.left_menu)
+        body_layout.addWidget(self.left_menu)
 
         center = QWidget()
         center.setObjectName("centerPanel")
         center_layout = QVBoxLayout(center)
         center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(9)
+        center_layout.setSpacing(0)
 
-        self.toolbar = TopToolbar()
         self.navigation = Navigation()
         self.action_bar = ActionBar()
         self.dashboard = Dashboard()
         self.explorer = Explorer()
         self.status_bar = StatusBar()
 
-        center_layout.addWidget(self.toolbar)
         center_layout.addWidget(self.navigation)
         center_layout.addWidget(self.action_bar)
         center_layout.addWidget(self.dashboard, 1)
         center_layout.addWidget(self.explorer, 1)
         center_layout.addWidget(self.status_bar)
-        root.addWidget(center, 1)
+        body_layout.addWidget(center, 1)
 
         self.right_sidebar = RightSidebar()
-        root.addWidget(self.right_sidebar)
+        body_layout.addWidget(self.right_sidebar)
+        root.addWidget(body, 1)
 
     def _connect_signals(self):
         self.explorer.pathChanged.connect(self._path_changed)
@@ -99,6 +107,8 @@ class MainWindow(QMainWindow):
         self.dashboard.folderRequested.connect(self._open_storage_folder)
         self.dashboard.fileRequested.connect(self._open_recent_file)
         self.dashboard.showAllRequested.connect(lambda: self.left_menu.select("files"))
+        self.dashboard.newFolderRequested.connect(self.ui_actions.create_folder)
+        self.dashboard.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.upgradeRequested.connect(self._upgrade)
 
@@ -131,7 +141,7 @@ class MainWindow(QMainWindow):
         effect.setOpacity(0.0)
         widget.setGraphicsEffect(effect)
         animation = QPropertyAnimation(effect, b"opacity", self)
-        animation.setDuration(160)
+        animation.setDuration(140)
         animation.setStartValue(0.0)
         animation.setEndValue(1.0)
         animation.setEasingCurve(QEasingCurve.OutCubic)
@@ -214,7 +224,7 @@ class MainWindow(QMainWindow):
             self.history = self.history[: self.history_index + 1]
             self.history.append(path)
             self.history_index = len(self.history) - 1
-        self.status_bar.updateStatus("Ready")
+        self.status_bar.updateStatus("Готово")
 
     def _navigate(self, path):
         self.explorer.open(path)
@@ -226,17 +236,17 @@ class MainWindow(QMainWindow):
     def _show_context_menu(self, data):
         self.selected_item = data
         menu = QMenu(self)
-        open_action = QAction("Open", menu)
+        open_action = QAction("Открыть", menu)
         open_action.triggered.connect(lambda: self._open_recent_file(data["path"]))
         menu.addAction(open_action)
         menu.addSeparator()
-        copy_action = QAction("Copy", menu)
+        copy_action = QAction("Копировать", menu)
         copy_action.triggered.connect(self.ui_actions.copy)
         menu.addAction(copy_action)
-        rename_action = QAction("Rename", menu)
+        rename_action = QAction("Переименовать", menu)
         rename_action.triggered.connect(self.ui_actions.rename)
         menu.addAction(rename_action)
-        delete_action = QAction("Delete", menu)
+        delete_action = QAction("Удалить", menu)
         delete_action.triggered.connect(self.ui_actions.delete)
         menu.addAction(delete_action)
         menu.exec(self.cursor().pos())
@@ -261,7 +271,7 @@ class MainWindow(QMainWindow):
             return
         if not text.strip():
             self.explorer.refresh()
-            self.status_bar.updateStatus("Ready")
+            self.status_bar.updateStatus("Готово")
             return
         results = []
         needle = text.strip().casefold()
@@ -273,7 +283,7 @@ class MainWindow(QMainWindow):
             pass
         results.sort(key=lambda item: (not item.is_dir(), item.name.casefold()))
         self.explorer.show_results(results)
-        self.status_bar.updateStatus(f"Search: {len(results)}")
+        self.status_bar.updateStatus(f"Найдено: {len(results)}")
 
     def _page_changed(self, page):
         if page == "home":
@@ -281,13 +291,13 @@ class MainWindow(QMainWindow):
             return
         if page == "settings":
             self._show_home()
-            QMessageBox.information(self, APP_NAME, f"Settings\n\nStorage: local\nLimit: 5 GB\nTheme: Dark\nVersion: {APP_VERSION}")
+            QMessageBox.information(self, APP_NAME, f"Настройки\n\nХранилище: локальное\nЛимит: 5 ГБ\nТема: тёмная\nВерсия: {APP_VERSION}")
             return
         if page == "trash":
             try:
                 os.startfile("shell:RecycleBinFolder")
             except OSError:
-                QMessageBox.information(self, APP_NAME, "Recycle Bin could not be opened.")
+                QMessageBox.information(self, APP_NAME, "Не удалось открыть корзину Windows.")
             return
         self._show_files()
         folder_map = {"documents": "Documents", "images": "Images", "videos": "Videos", "music": "Music", "archives": "Archives"}
@@ -318,15 +328,15 @@ class MainWindow(QMainWindow):
         self.navigation.setPath(self.explorer.current)
 
     def _notifications(self):
-        QMessageBox.information(self, APP_NAME, "No new notifications.")
+        QMessageBox.information(self, APP_NAME, "Новых уведомлений нет.")
 
     def _profile(self):
-        QMessageBox.information(self, APP_NAME, "Local profile: Ordboybro\nStorage: 5 GB")
+        QMessageBox.information(self, APP_NAME, "Профиль\n\nПользователь: Ordboybro\nХранилище: 5 ГБ")
 
     def _toggle_view(self):
         self.compact_view = not self.compact_view
         self.explorer.set_compact(self.compact_view)
-        self.status_bar.updateStatus("Compact view" if self.compact_view else "Comfortable view")
+        self.status_bar.updateStatus("Компактный вид" if self.compact_view else "Обычный вид")
 
     def _upload_to_current(self):
         if self.dashboard.isVisible():
@@ -336,4 +346,4 @@ class MainWindow(QMainWindow):
         self.ui_actions.upload()
 
     def _upgrade(self):
-        QMessageBox.information(self, APP_NAME, "OrdCloud storage\n\nCurrent plan: Free\nLimit: 5 GB")
+        QMessageBox.information(self, APP_NAME, "OrdCloud\n\nТекущий тариф: Free\nЛимит: 5 ГБ")
