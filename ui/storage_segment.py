@@ -15,9 +15,9 @@ class StorageSegment(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-
         rect = self.rect().adjusted(18, 18, -18, -18)
-        used = max(0, storage.get_size())
+        snapshot = storage.get_snapshot()
+        used = max(0, snapshot["size"])
         ratio = min(1.0, used / MAX_STORAGE_BYTES) if MAX_STORAGE_BYTES else 0.0
         percent = int(round(ratio * 100))
 
@@ -33,12 +33,9 @@ class StorageSegment(QWidget):
             painter.drawArc(rect, -90 * 16, int(-ratio * 360 * 16))
 
         painter.setPen(QColor("#f2f4f7"))
-        font = QFont("Segoe UI", 27)
-        font.setBold(False)
-        painter.setFont(font)
+        painter.setFont(QFont("Segoe UI", 27))
         painter.drawText(self.rect().adjusted(0, -5, 0, -5), Qt.AlignCenter, f"{percent}%")
 
         painter.setPen(QColor("#9aa2ad"))
-        small = QFont("Segoe UI", 11)
-        painter.setFont(small)
+        painter.setFont(QFont("Segoe UI", 11))
         painter.drawText(self.rect().adjusted(0, 34, 0, 34), Qt.AlignCenter, "Использовано")
