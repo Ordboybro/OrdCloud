@@ -1,24 +1,24 @@
 # OrdCloud
 
-**OrdCloud** is a local-first desktop file-storage application built with **Python + PySide6**. It combines a modern cloud-drive style interface with real local file management.
+**OrdCloud** is a local-first desktop file-storage application built with **Python + PySide6**. It combines a polished dark cloud-drive interface with real local file management.
 
-> Current version: **0.3.1**
+> Current version: **0.4.0**
 
 ## What it does
 
-- Modern dark storage dashboard
+- Reference-inspired dark dashboard UI
+- Russian interface and cloud-drive style navigation
 - Local sandboxed storage under `data/storage`
 - Configurable 5 GB storage quota
-- Home dashboard with Quick Access and Recent Files
+- Quick Access dashboard with Documents, Photos, Video, Presentations and Archives
+- Recent files and favorites
 - Folder navigation and breadcrumbs
 - Upload and drag & drop
 - Create folders
 - Copy / paste
 - Rename
 - Delete to the Windows Recycle Bin
-- Search
-- Recent files
-- Favorites
+- Search with a debounced UI
 - Compact view
 - Context menu
 - Back / forward navigation
@@ -26,6 +26,7 @@
 - Real-time storage statistics
 - Safe path validation so file operations stay inside the storage sandbox
 - Smooth lightweight page transitions
+- Automated compile, storage tests and UI-import checks in GitHub Actions
 
 ## Keyboard shortcuts
 
@@ -48,7 +49,7 @@
 - PySide6 / Qt
 - Send2Trash
 - `unittest` for storage tests
-- GitHub Actions for automated compile/test checks
+- GitHub Actions for automated quality checks
 
 ## Installation
 
@@ -84,6 +85,7 @@ OrdCloud/
 │   ├── favorites.py
 │   ├── file_model.py
 │   ├── recent.py
+│   ├── storage.py
 │   ├── storage_service.py
 │   └── ui_actions.py
 ├── ui/
@@ -95,9 +97,12 @@ OrdCloud/
 │   ├── main_window.py
 │   ├── navigation.py
 │   ├── right_sidebar.py
+│   ├── search_box.py
 │   ├── status_bar.py
+│   ├── storage_panel.py
 │   └── top_toolbar.py
 ├── resources/
+│   ├── icons/
 │   └── style.qss
 ├── tests/
 │   └── test_storage.py
@@ -110,12 +115,12 @@ OrdCloud/
 
 The project separates responsibilities into small modules:
 
-- `modules/storage_service.py` — storage rules and filesystem operations
+- `modules/storage.py` — safe filesystem/storage primitives
+- `modules/storage_service.py` — application storage configuration
 - `modules/ui_actions.py` — commands initiated by the interface
 - `modules/file_model.py` — converts filesystem entries into UI data
-- `modules/recent.py` / `favorites.py` — local UI state
-- `ui/main_window.py` — application orchestration and navigation
-- `ui/dashboard.py` — Home dashboard
+- `ui/main_window.py` — application shell, navigation and shortcuts
+- `ui/dashboard.py` — reference-style Home dashboard
 - `ui/explorer.py` — file browser
 - `resources/style.qss` — visual system
 
@@ -123,14 +128,15 @@ OrdCloud is intentionally **local-first**: it does not require an account, exter
 
 ## Development
 
-Before committing changes, run both checks:
+Before committing changes, run:
 
 ```powershell
 python -m compileall .
 python -m unittest discover -s tests -v
+python main.py
 ```
 
-Then launch the application and manually verify the file-management flows.
+The reference image is stored in `screenshots/1.png`; `screenshots/current.png` is the latest local application capture.
 
 ## License
 
