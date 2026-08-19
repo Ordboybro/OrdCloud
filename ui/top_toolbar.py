@@ -40,7 +40,7 @@ class TopToolbar(QFrame):
         brand_layout.addWidget(title)
         layout.addWidget(brand)
 
-        layout.addSpacing(42)
+        layout.addSpacing(92)
 
         self.back = IconButton("‹")
         self.forward = IconButton("›")
