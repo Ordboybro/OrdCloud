@@ -16,22 +16,26 @@ class StorageManager:
         self._snapshot_at = 0.0
 
     def resolve(self, relative_path=""):
-        relative = Path(relative_path)
-        if relative.is_absolute():
-            raise ValueError("Absolute paths are not allowed")
-        target = (self.root / relative).resolve()
+        """Resolve a path while keeping it strictly inside storage.
+
+        Relative paths are preferred, but absolute paths are accepted when
+        they already point inside the storage root. The root itself remains
+        a protected location and is never returned for an item operation.
+        """
+        candidate = Path(relative_path)
+        target = candidate.resolve() if candidate.is_absolute() else (self.root / candidate).resolve()
         try:
             target.relative_to(self.root)
         except ValueError as exc:
             raise ValueError("Path escapes storage") from exc
+        if target == self.root:
+            raise ValueError("Storage root is not an item path")
         return target
 
     def _raw_path(self, relative_path="") -> Path:
         """Build an absolute path without following the final symlink."""
         relative = Path(relative_path)
-        if relative.is_absolute():
-            raise ValueError("Absolute paths are not allowed")
-        return self.root / relative
+        return relative if relative.is_absolute() else self.root / relative
 
     @staticmethod
     def _reject_symlink(path: Path) -> None:
@@ -111,7 +115,7 @@ class StorageManager:
         name = name.strip()
         if not name or Path(name).name != name or name in {".", ".."}:
             raise ValueError("Invalid folder name")
-        parent_path = self.resolve(parent)
+        parent_path = self.resolve(parent) if parent else self.root
         self._reject_symlink(parent_path)
         if not parent_path.is_dir():
             raise NotADirectoryError(parent_path)
@@ -124,12 +128,10 @@ class StorageManager:
 
     def delete(self, relative_path):
         raw = self._raw_path(relative_path)
-        if raw == self.root:
+        if raw.resolve() == self.root:
             raise ValueError("Cannot delete storage root")
         self._reject_symlink(raw)
         target = self.resolve(relative_path)
-        if target == self.root:
-            raise ValueError("Cannot delete storage root")
         if target.is_dir():
             shutil.rmtree(target)
         elif target.exists():
@@ -145,10 +147,6 @@ class StorageManager:
         raw = self._raw_path(relative_path)
         self._reject_symlink(raw)
         target = self.resolve(relative_path)
-        if target == self.root:
-            raise ValueError("Cannot rename storage root")
-        if not target.exists():
-            raise FileNotFoundError(target)
         new_path = target.parent / new_name
         if new_path.exists() or new_path.is_symlink():
             raise FileExistsError("Target already exists")
@@ -207,10 +205,19 @@ class StorageManager:
         return destination
 
     def exists(self, relative_path):
-        return self.resolve(relative_path).exists()
+        try:
+            return self.resolve(relative_path).exists()
+        except ValueError:
+            return False
 
     def is_file(self, relative_path):
-        return self.resolve(relative_path).is_file()
+        try:
+            return self.resolve(relative_path).is_file()
+        except ValueError:
+            return False
 
     def is_dir(self, relative_path):
-        return self.resolve(relative_path).is_dir()
+        try:
+            return self.resolve(relative_path).is_dir()
+        except ValueError:
+            return False
