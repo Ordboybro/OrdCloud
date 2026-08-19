@@ -36,11 +36,6 @@ QPushButton#primaryAction:pressed { background: #286de4; }
 QFrame#quickCard { background: #14181d; border: 1px solid #2a3036; border-radius: 15px; min-height: 164px; max-height: 196px; }
 QFrame#quickCard:hover { background: #191e24; border-color: #3a424c; }
 QLabel#quickIcon { border-radius: 13px; font-size: 29px; font-weight: 600; }
-QLabel#quickIcon[iconType="blue"] { color: #5792ff; background: #183c79; }
-QLabel#quickIcon[iconType="green"] { color: #72d99b; background: #194b30; }
-QLabel#quickIcon[iconType="purple"] { color: #b687ed; background: #3c285a; }
-QLabel#quickIcon[iconType="red"] { color: #ff7770; background: #5b2927; }
-QLabel#quickIcon[iconType="violet"] { color: #be7ef0; background: #45295c; }
 QLabel#quickTitle { color: #f0f2f5; font-size: 16px; font-weight: 450; }
 QLabel#quickCount { color: #9097a0; font-size: 14px; }
 QPushButton#showAll { background: transparent; border: none; color: #4285ff; font-size: 14px; padding: 6px 2px; }
@@ -57,7 +52,7 @@ QLabel#recentEmpty { color: #707984; font-size: 15px; padding: 34px; }
 QPushButton#recentStar, QPushButton#recentMore { background: transparent; border: none; color: #a1a8b1; font-size: 22px; }
 QPushButton#recentStar:hover, QPushButton#recentMore:hover { color: #f5c43b; }
 QFrame#rightSidebar { background: #13171b; border: none; border-left: 1px solid #2a2f35; }
-QFrame#storagePanel { background: transparent; border: none; }
+QFrame#storagePanel { background: #14181d; border: 1px solid #2a3036; border-radius: 14px; }
 QLabel#sectionTitle { color: #f1f3f5; font-size: 16px; font-weight: 500; padding: 2px 4px; }
 QFrame#storageStats { background: transparent; border: none; }
 QFrame#storageStats QLabel { color: #a6adb6; font-size: 14px; }
