@@ -2,11 +2,11 @@
 
 **OrdCloud** is a local-first desktop file-storage application built with **Python + PySide6**. It combines a polished dark cloud-drive interface with real local file management.
 
-> Current version: **0.4.0**
+> Current version: **0.5.0**
 
 ## What it does
 
-- Reference-inspired dark dashboard UI
+- Reference-matched dark dashboard UI
 - Russian interface and cloud-drive style navigation
 - Local sandboxed storage under `data/storage`
 - Configurable 5 GB storage quota
@@ -18,12 +18,13 @@
 - Copy / paste
 - Rename
 - Delete to the Windows Recycle Bin
-- Search with a debounced UI
+- Recursive search with a debounced UI
 - Compact view
 - Context menu
 - Back / forward navigation
 - Keyboard shortcuts
 - Real-time storage statistics
+- Painted file-type icons for consistent rendering
 - Safe path validation so file operations stay inside the storage sandbox
 - Smooth lightweight page transitions
 - Automated compile, storage tests and UI-import checks in GitHub Actions
@@ -93,6 +94,7 @@ OrdCloud/
 │   ├── dashboard.py
 │   ├── explorer.py
 │   ├── file_row.py
+│   ├── file_type_icon.py
 │   ├── left_menu.py
 │   ├── main_window.py
 │   ├── navigation.py
@@ -120,8 +122,9 @@ The project separates responsibilities into small modules:
 - `modules/ui_actions.py` — commands initiated by the interface
 - `modules/file_model.py` — converts filesystem entries into UI data
 - `ui/main_window.py` — application shell, navigation and shortcuts
-- `ui/dashboard.py` — reference-style Home dashboard
+- `ui/dashboard.py` — Home dashboard
 - `ui/explorer.py` — file browser
+- `ui/file_type_icon.py` — consistent file/folder icon rendering
 - `resources/style.qss` — visual system
 
 OrdCloud is intentionally **local-first**: it does not require an account, external server, or cloud API.
