@@ -9,12 +9,14 @@ class StoragePanel(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("storagePanel")
+        self.setMinimumHeight(454)
+        self.setMaximumHeight(454)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(6)
 
-        title = QLabel("Storage")
+        title = QLabel("Хранилище")
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
 
