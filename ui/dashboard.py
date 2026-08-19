@@ -2,16 +2,10 @@ from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from config import ICONS_DIR
 from modules.favorites import Favorites
 from modules.recent import Recent
 from modules.storage_service import storage_path
@@ -20,7 +14,7 @@ from modules.storage_service import storage_path
 class QuickCard(QFrame):
     opened = Signal(str)
 
-    def __init__(self, title: str, icon: str, path_name: str, color_name: str, count_unit: str = "файлов"):
+    def __init__(self, title: str, icon_name: str, path_name: str, color_name: str, count_unit: str = "файлов"):
         super().__init__()
         self.setObjectName("quickCard")
         self.setCursor(Qt.PointingHandCursor)
@@ -32,11 +26,13 @@ class QuickCard(QFrame):
         layout.setContentsMargins(14, 14, 14, 16)
         layout.setSpacing(9)
 
-        icon_label = QLabel(icon)
+        icon_label = QLabel()
         icon_label.setObjectName("quickIcon")
-        icon_label.setProperty("iconType", color_name)
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setFixedSize(58, 58)
+        icon_label.setFixedSize(64, 64)
+        pixmap = QPixmap(str(ICONS_DIR / icon_name))
+        if not pixmap.isNull():
+            icon_label.setPixmap(pixmap.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(icon_label, alignment=Qt.AlignCenter)
 
         name = QLabel(title)
@@ -80,12 +76,7 @@ class RecentRow(QFrame):
         layout.setContentsMargins(16, 7, 14, 7)
         layout.setSpacing(14)
 
-        if path.is_dir():
-            icon = "■"
-        else:
-            suffix = path.suffix.lower()
-            icon = {".jpg": "▣", ".jpeg": "▣", ".png": "▣", ".pdf": "▤", ".docx": "▥", ".xlsx": "▦", ".zip": "▥"}.get(suffix, "▤")
-
+        icon = "■" if path.is_dir() else {".jpg": "▣", ".jpeg": "▣", ".png": "▣", ".pdf": "▤", ".docx": "▥", ".xlsx": "▦", ".zip": "▥"}.get(path.suffix.lower(), "▤")
         icon_label = QLabel(icon)
         icon_label.setObjectName("recentIcon")
         icon_label.setFixedSize(42, 42)
@@ -204,11 +195,11 @@ class Dashboard(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(12)
         cards = [
-            ("Документы", "▰", "Documents", "blue"),
-            ("Фото", "◉", "Images", "green"),
-            ("Видео", "▶", "Videos", "purple"),
-            ("Презентации", "▤", "Presentations", "red"),
-            ("Архивы", "▥", "Archives", "violet"),
+            ("Документы", "documents.svg", "Documents", "blue"),
+            ("Фото", "images.svg", "Images", "green"),
+            ("Видео", "videos.svg", "Videos", "purple"),
+            ("Презентации", "presentations.svg", "Presentations", "red"),
+            ("Архивы", "archives.svg", "Archives", "violet"),
         ]
         for index, item in enumerate(cards):
             card = QuickCard(*item)
@@ -252,7 +243,6 @@ class Dashboard(QWidget):
         header_layout.addSpacing(72)
         self.table_layout.addWidget(header)
         root.addWidget(self.table, 1)
-
         self.refresh()
 
     def refresh(self):
