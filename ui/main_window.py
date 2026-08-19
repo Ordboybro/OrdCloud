@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         self.explorer.contextRequested.connect(self._show_context_menu)
         self.explorer.filesDropped.connect(self._files_dropped)
         self.navigation.pathClicked.connect(self._navigate)
+        self.toolbar.menu.clicked.connect(self._toggle_sidebar)
         self.toolbar.reload.clicked.connect(self._refresh_current)
         self.toolbar.back.clicked.connect(self._go_back)
         self.toolbar.forward.clicked.connect(self._go_forward)
@@ -111,6 +112,11 @@ class MainWindow(QMainWindow):
         self.dashboard.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.upgradeRequested.connect(self._upgrade)
+
+    def _toggle_sidebar(self):
+        visible = self.left_menu.isVisible()
+        self.left_menu.setVisible(not visible)
+        self.status_bar.updateStatus("Боковая панель скрыта" if visible else "Боковая панель показана")
 
     def _setup_shortcuts(self):
         shortcuts = [
