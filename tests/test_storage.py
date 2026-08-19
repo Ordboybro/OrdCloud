@@ -36,6 +36,26 @@ class StorageManagerTests(unittest.TestCase):
         self.assertEqual(self.storage.get_free(), 0)
         self.assertEqual(self.storage.get_usage_percent(), 100.0)
 
+    def test_shared_snapshot_contains_totals_and_categories(self):
+        (self.root / "Documents").mkdir()
+        (self.root / "Documents" / "readme.txt").write_bytes(b"abc")
+        (self.root / "photo.png").write_bytes(b"12345")
+        snapshot = self.storage.get_snapshot(force=True)
+        self.assertEqual(snapshot["size"], 8)
+        self.assertEqual(snapshot["files"], 2)
+        self.assertEqual(snapshot["directories"], 1)
+        self.assertEqual(snapshot["categories"]["Документы"], 3)
+        self.assertEqual(snapshot["categories"]["Изображения"], 5)
+
+    def test_snapshot_is_invalidated_after_mutation(self):
+        self.storage.get_snapshot(force=True)
+        self.storage.create_folder("", "New")
+        self.assertEqual(self.storage.get_snapshot()["directories"], 1)
+        self.storage.rename("New", "Renamed")
+        self.assertEqual(self.storage.get_snapshot()["directories"], 1)
+        self.storage.delete("Renamed")
+        self.assertEqual(self.storage.get_snapshot()["directories"], 0)
+
     def test_cannot_delete_root(self):
         with self.assertRaises(ValueError):
             self.storage.delete("")
