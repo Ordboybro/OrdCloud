@@ -3,7 +3,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 APP_NAME = "OrdCloud"
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 
 RESOURCES_DIR = BASE_DIR / "resources"
 ICONS_DIR = RESOURCES_DIR / "icons"
@@ -12,11 +12,11 @@ DATA_DIR = BASE_DIR / "data"
 STORAGE_DIR = DATA_DIR / "storage"
 THEME = RESOURCES_DIR / "style.qss"
 
-# Reference viewport. The layout remains responsive below this size.
-WINDOW_WIDTH = 1366
-WINDOW_HEIGHT = 768
-MIN_WINDOW_WIDTH = 1120
-MIN_WINDOW_HEIGHT = 680
+# Reference image viewport. Qt scales this naturally on smaller displays.
+WINDOW_WIDTH = 1536
+WINDOW_HEIGHT = 1024
+MIN_WINDOW_WIDTH = 1180
+MIN_WINDOW_HEIGHT = 760
 
 MAX_STORAGE_GB = 5
 MAX_STORAGE_BYTES = MAX_STORAGE_GB * 1024 * 1024 * 1024
