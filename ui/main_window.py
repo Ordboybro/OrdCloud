@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, Qt
+from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, Qt, QThreadPool
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -15,7 +15,9 @@ from PySide6.QtWidgets import (
 
 from config import APP_NAME, APP_VERSION, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
 from modules.clipboard import Clipboard
+from modules.favorites import Favorites
 from modules.recent import Recent
+from modules.search_worker import SearchWorker
 from modules.storage_service import storage_path
 from modules.ui_actions import UIActions
 from ui.left_menu import LeftMenu
@@ -42,9 +44,11 @@ class MainWindow(QMainWindow):
         self.compact_view = False
         self._animations = []
         self._sidebar_visible = True
+        self._search_request_id = 0
+        self._thread_pool = QThreadPool.globalInstance()
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
-        self._search_timer.setInterval(120)
+        self._search_timer.setInterval(140)
         self._search_timer.timeout.connect(lambda: self._search(self.toolbar.search.text()))
 
         self._build_ui()
@@ -180,6 +184,7 @@ class MainWindow(QMainWindow):
     def _show_home(self, animate=True):
         self.selected_item = None
         self._search_timer.stop()
+        self._search_request_id += 1
         self.toolbar.search.clear()
         self.dashboard.show()
         self.explorer.hide()
@@ -232,6 +237,7 @@ class MainWindow(QMainWindow):
         self.ui_actions.upload_files(files)
 
     def _refresh_current(self):
+        self._search_request_id += 1
         if self.dashboard.isVisible():
             self.dashboard.refresh()
         else:
@@ -261,6 +267,18 @@ class MainWindow(QMainWindow):
         open_action.triggered.connect(lambda: self._open_recent_file(data["path"]))
         menu.addAction(open_action)
         menu.addSeparator()
+
+        favorites = Favorites()
+        favorite_path = str(Path(data["path"]).resolve())
+        favorite_action = QAction(
+            "Убрать из избранного" if favorites.contains(favorite_path) else "Добавить в избранное",
+            menu,
+        )
+        favorite_action.triggered.connect(
+            lambda: self._toggle_favorite(favorite_path, favorites)
+        )
+        menu.addAction(favorite_action)
+
         copy_action = QAction("Копировать", menu)
         copy_action.triggered.connect(self.ui_actions.copy)
         menu.addAction(copy_action)
@@ -271,6 +289,13 @@ class MainWindow(QMainWindow):
         delete_action.triggered.connect(self.ui_actions.delete)
         menu.addAction(delete_action)
         menu.exec(self.cursor().pos())
+
+    @staticmethod
+    def _toggle_favorite(path, favorites):
+        if favorites.contains(path):
+            favorites.remove(path)
+        else:
+            favorites.add(path)
 
     def _go_back(self):
         if self.dashboard.isVisible() or self.history_index <= 0:
@@ -290,21 +315,25 @@ class MainWindow(QMainWindow):
         current = self.explorer.current
         if current is None:
             return
-        if not text.strip():
+        text = text.strip()
+        self._search_request_id += 1
+        request_id = self._search_request_id
+        if not text:
             self.explorer.refresh()
             self.status_bar.updateStatus("Готово")
             return
-        results = []
-        needle = text.strip().casefold()
-        try:
-            for item in current.rglob("*"):
-                if needle in item.name.casefold():
-                    results.append(item)
-        except (PermissionError, OSError):
-            pass
-        results.sort(key=lambda item: (not item.is_dir(), item.name.casefold()))
+
+        self.status_bar.updateStatus("Поиск…")
+        worker = SearchWorker(current, text, request_id)
+        worker.signals.finished.connect(self._search_finished)
+        self._thread_pool.start(worker)
+
+    def _search_finished(self, request_id, results):
+        if request_id != self._search_request_id:
+            return
         self.explorer.show_results(results)
-        self.status_bar.updateStatus(f"Найдено: {len(results)}")
+        suffix = "+" if len(results) >= 2000 else ""
+        self.status_bar.updateStatus(f"Найдено: {len(results)}{suffix}")
 
     def _page_changed(self, page):
         if page == "home":
