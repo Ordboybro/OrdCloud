@@ -1,35 +1,33 @@
-from pathlib import Path
-
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
 
 from modules.storage_service import storage_path
 
 
 class StorageStats(QFrame):
-
     CATEGORIES = (
-        ("Documents", "#5F89FF", {".txt", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".py", ".json", ".md"}),
-        ("Images", "#6ED0A9", {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"}),
-        ("Videos", "#FFB84D", {".mp4", ".mkv", ".avi", ".mov", ".webm"}),
-        ("Other", "#FF6A7A", set()),
+        ("Документы", "#5F89FF", {".txt", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".py", ".json", ".md"}),
+        ("Изображения", "#6ED0A9", {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"}),
+        ("Видео", "#FFB84D", {".mp4", ".mkv", ".avi", ".mov", ".webm"}),
+        ("Другое", "#FF6A7A", set()),
     )
 
     def __init__(self):
         super().__init__()
         self.setObjectName("storageStats")
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(12, 10, 12, 10)
+        self.layout.setContentsMargins(12, 8, 12, 8)
+        self.layout.setSpacing(6)
         self.refresh()
 
     @staticmethod
     def _format_size(size):
         if size < 1024:
-            return f"{size} B"
+            return f"{size} Б"
         if size < 1024 ** 2:
-            return f"{size / 1024:.1f} KB"
+            return f"{size / 1024:.1f} КБ"
         if size < 1024 ** 3:
-            return f"{size / 1024 ** 2:.1f} MB"
-        return f"{size / 1024 ** 3:.1f} GB"
+            return f"{size / 1024 ** 2:.1f} МБ"
+        return f"{size / 1024 ** 3:.1f} ГБ"
 
     @classmethod
     def _sizes(cls):
@@ -44,14 +42,13 @@ class StorageStats(QFrame):
             for path in root.rglob("*"):
                 if not path.is_file():
                     continue
-                category = extensions.get(path.suffix.lower(), "Other")
+                category = extensions.get(path.suffix.lower(), "Другое")
                 try:
                     sizes[category] += path.stat().st_size
                 except OSError:
                     continue
         except OSError:
             pass
-
         return sizes
 
     def refresh(self):
@@ -61,7 +58,6 @@ class StorageStats(QFrame):
                 item.widget().deleteLater()
 
         sizes = self._sizes()
-
         for title, color, _ in self.CATEGORIES:
             row = QHBoxLayout()
             dot = QLabel("●")
