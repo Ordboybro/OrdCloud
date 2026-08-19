@@ -3,7 +3,15 @@ import os
 
 from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QMenu, QGraphicsOpacityEffect
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QMessageBox,
+    QMenu,
+    QGraphicsOpacityEffect,
+)
 
 from config import APP_NAME, APP_VERSION, WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
 from modules.clipboard import Clipboard
@@ -33,6 +41,7 @@ class MainWindow(QMainWindow):
         self.clipboard = Clipboard()
         self.compact_view = False
         self._animations = []
+        self._sidebar_visible = True
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
         self._search_timer.setInterval(120)
@@ -113,11 +122,6 @@ class MainWindow(QMainWindow):
         self.right_sidebar.uploadRequested.connect(self._upload_to_current)
         self.right_sidebar.upgradeRequested.connect(self._upgrade)
 
-    def _toggle_sidebar(self):
-        visible = self.left_menu.isVisible()
-        self.left_menu.setVisible(not visible)
-        self.status_bar.updateStatus("Боковая панель скрыта" if visible else "Боковая панель показана")
-
     def _setup_shortcuts(self):
         shortcuts = [
             ("Ctrl+F", self._focus_search),
@@ -130,6 +134,7 @@ class MainWindow(QMainWindow):
             ("Alt+Left", self._go_back),
             ("Alt+Right", self._go_forward),
             ("F5", self._refresh_current),
+            ("Escape", self._clear_selection),
         ]
         for sequence, callback in shortcuts:
             shortcut = QShortcut(QKeySequence(sequence), self)
@@ -138,6 +143,16 @@ class MainWindow(QMainWindow):
     def _focus_search(self):
         self.toolbar.search.setFocus()
         self.toolbar.search.selectAll()
+
+    def _clear_selection(self):
+        self.selected_item = None
+        self.status_bar.updateStatus("Готово")
+        self.explorer.clear_selection()
+
+    def _toggle_sidebar(self):
+        self._sidebar_visible = not self._sidebar_visible
+        self.left_menu.setVisible(self._sidebar_visible)
+        self.status_bar.updateStatus("Боковая панель скрыта" if not self._sidebar_visible else "Боковая панель показана")
 
     def _schedule_search(self, _text):
         self._search_timer.start()
@@ -297,7 +312,11 @@ class MainWindow(QMainWindow):
             return
         if page == "settings":
             self._show_home()
-            QMessageBox.information(self, APP_NAME, f"Настройки\n\nХранилище: локальное\nЛимит: 5 ГБ\nТема: тёмная\nВерсия: {APP_VERSION}")
+            QMessageBox.information(
+                self,
+                APP_NAME,
+                f"Настройки\n\nХранилище: локальное\nЛимит: 5 ГБ\nТема: тёмная\nВерсия: {APP_VERSION}",
+            )
             return
         if page == "trash":
             try:
@@ -306,7 +325,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, APP_NAME, "Не удалось открыть корзину Windows.")
             return
         self._show_files()
-        folder_map = {"documents": "Documents", "images": "Images", "videos": "Videos", "music": "Music", "archives": "Archives"}
+        folder_map = {
+            "documents": "Documents",
+            "images": "Images",
+            "videos": "Videos",
+            "music": "Music",
+            "archives": "Archives",
+        }
         if page in folder_map:
             path = storage_path() / folder_map[page]
             path.mkdir(parents=True, exist_ok=True)
@@ -334,10 +359,34 @@ class MainWindow(QMainWindow):
         self.navigation.setPath(self.explorer.current)
 
     def _notifications(self):
-        QMessageBox.information(self, APP_NAME, "Новых уведомлений нет.")
+        QMessageBox.information(
+            self,
+            APP_NAME,
+            "Уведомления\n\nПока новых уведомлений нет.\n\nЗдесь позже можно показывать завершённые загрузки, ошибки операций и предупреждения о месте.",
+        )
 
     def _profile(self):
-        QMessageBox.information(self, APP_NAME, "Профиль\n\nПользователь: Ordboybro\nХранилище: 5 ГБ")
+        menu = QMenu(self)
+        profile = QAction("Профиль Ordboybro", menu)
+        profile.setEnabled(False)
+        menu.addAction(profile)
+        menu.addSeparator()
+        storage_action = QAction("Хранилище: 5 ГБ", menu)
+        storage_action.setEnabled(False)
+        menu.addAction(storage_action)
+        settings = QAction("Настройки", menu)
+        settings.triggered.connect(lambda: self.left_menu.select("settings"))
+        menu.addAction(settings)
+        about = QAction(f"О OrdCloud {APP_VERSION}", menu)
+        about.triggered.connect(
+            lambda: QMessageBox.information(
+                self,
+                APP_NAME,
+                f"OrdCloud {APP_VERSION}\nЛокальное файловое хранилище для Windows.",
+            )
+        )
+        menu.addAction(about)
+        menu.exec(self.toolbar.profile.mapToGlobal(self.toolbar.profile.rect().bottomLeft()))
 
     def _toggle_view(self):
         self.compact_view = not self.compact_view
@@ -352,4 +401,15 @@ class MainWindow(QMainWindow):
         self.ui_actions.upload()
 
     def _upgrade(self):
-        QMessageBox.information(self, APP_NAME, "OrdCloud\n\nТекущий тариф: Free\nЛимит: 5 ГБ")
+        box = QMessageBox(self)
+        box.setWindowTitle("Тариф OrdCloud")
+        box.setText("Сейчас активен бесплатный тариф — 5 ГБ.")
+        box.setInformativeText(
+            "Идея для будущей версии:\n"
+            "• Free — 5 ГБ\n"
+            "• Pro — 50 ГБ\n"
+            "• Team — общий диск\n\n"
+            "Оплата и облачная синхронизация пока не реализованы."
+        )
+        box.setStandardButtons(QMessageBox.Ok)
+        box.exec()
