@@ -48,9 +48,14 @@ class Explorer(QWidget):
             if widget:
                 widget.deleteLater()
 
+    def clear_selection(self):
+        if self._selected_row is not None:
+            self._selected_row.set_selected(False)
+        self._selected_row = None
+
     def _add_rows(self, items):
         if not items:
-            empty = QLabel("This folder is empty")
+            empty = QLabel("Эта папка пуста")
             empty.setObjectName("recentEmpty")
             empty.setAlignment(Qt.AlignCenter)
             self.layout.addWidget(empty)
