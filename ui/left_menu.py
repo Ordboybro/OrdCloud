@@ -12,38 +12,38 @@ class LeftMenu(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("leftMenu")
-        self.setFixedWidth(310)
+        self.setFixedWidth(332)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 24)
-        layout.setSpacing(3)
+        layout.setContentsMargins(14, 12, 20, 28)
+        layout.setSpacing(2)
         self.buttons = {}
 
-        self._add_button(layout, "home", "⌂", "Главная")
-        self._add_button(layout, "recent", "◷", "Недавние")
-        self._add_button(layout, "favorites", "☆", "Помеченные")
+        self._add_button(layout, "home", "ui_home.svg", "Главная")
+        self._add_button(layout, "recent", "ui_recent.svg", "Недавние")
+        self._add_button(layout, "favorites", "ui_star.svg", "Помеченные")
 
-        layout.addSpacing(18)
+        layout.addSpacing(17)
         self._add_section(layout, "Файлы")
-        self._add_button(layout, "files", "□", "Все файлы")
-        self._add_button(layout, "documents", "▤", "Документы")
-        self._add_button(layout, "images", "▧", "Фото")
-        self._add_button(layout, "videos", "▷", "Видео")
-        self._add_button(layout, "music", "♫", "Музыка")
-        self._add_button(layout, "archives", "▥", "Архивы")
+        self._add_button(layout, "files", "ui_folder.svg", "Все файлы")
+        self._add_button(layout, "documents", "ui_document.svg", "Документы")
+        self._add_button(layout, "images", "ui_image.svg", "Фото")
+        self._add_button(layout, "videos", "ui_video.svg", "Видео")
+        self._add_button(layout, "music", "ui_music.svg", "Музыка")
+        self._add_button(layout, "archives", "ui_archive.svg", "Архивы")
 
-        layout.addSpacing(18)
+        layout.addSpacing(17)
         self._add_section(layout, "Другое")
-        self._add_button(layout, "trash", "♜", "Корзина")
+        self._add_button(layout, "trash", "ui_trash.svg", "Корзина")
 
         layout.addStretch(1)
 
-        settings = MenuButton("⚙", "Настройки")
+        settings = MenuButton("ui_settings.svg", "Настройки")
         self.buttons["settings"] = settings
         settings.clicked.connect(lambda: self.pageChanged.emit("settings"))
         layout.addWidget(settings)
 
-        storage_label = QLabel("Использовано 0 Б из 5 ГБ")
+        storage_label = QLabel("Использовано 0 ГБ из 5 ГБ")
         storage_label.setObjectName("storageLabel")
         layout.addWidget(storage_label)
 
@@ -54,8 +54,14 @@ class LeftMenu(QFrame):
         progress.setTextVisible(False)
         layout.addWidget(progress)
 
+        percent_label = QLabel("0%")
+        percent_label.setObjectName("storagePercent")
+        percent_label.setAlignment(Qt.AlignRight)
+        layout.addWidget(percent_label)
+
         self.storage_label = storage_label
         self.storage_progress = progress
+        self.storage_percent = percent_label
         self.refresh_storage()
         self.select("home", emit=False)
 
@@ -84,6 +90,7 @@ class LeftMenu(QFrame):
         percent = min(100, int(used / MAX_STORAGE_BYTES * 100)) if MAX_STORAGE_BYTES else 0
         self.storage_progress.setValue(percent)
         self.storage_label.setText(f"Использовано {self._format_size(used)} из 5 ГБ")
+        self.storage_percent.setText(f"{percent}%")
 
     @staticmethod
     def _format_size(size):
