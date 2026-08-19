@@ -1,11 +1,13 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
 
 from ui.storage_segment import StorageSegment
 from ui.storage_stats import StorageStats
 
 
 class StoragePanel(QFrame):
+    upgradeRequested = Signal()
+
     def __init__(self):
         super().__init__()
         self.setObjectName("storagePanel")
@@ -25,6 +27,13 @@ class StoragePanel(QFrame):
 
         self.stats = StorageStats()
         layout.addWidget(self.stats)
+
+        upgrade = QPushButton("Увеличить объём")
+        upgrade.setObjectName("upgradeButton")
+        upgrade.setMinimumHeight(42)
+        upgrade.setCursor(Qt.PointingHandCursor)
+        upgrade.clicked.connect(self.upgradeRequested.emit)
+        layout.addWidget(upgrade)
 
     def refresh(self):
         self.stats.refresh()
