@@ -20,47 +20,44 @@ from modules.storage_service import storage_path
 class QuickCard(QFrame):
     opened = Signal(str)
 
-    def __init__(self, title: str, icon: str, path_name: str, color_name: str):
+    def __init__(self, title: str, icon: str, path_name: str, color_name: str, count_unit: str = "файлов"):
         super().__init__()
         self.setObjectName("quickCard")
         self.setCursor(Qt.PointingHandCursor)
         self.path_name = path_name
+        self.count_unit = count_unit
         self.setProperty("cardType", color_name)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(10)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 14, 14, 16)
+        layout.setSpacing(9)
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("quickIcon")
         icon_label.setProperty("iconType", color_name)
         icon_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(icon_label)
+        icon_label.setFixedSize(58, 58)
+        layout.addWidget(icon_label, alignment=Qt.AlignCenter)
 
-        text = QVBoxLayout()
-        text.setSpacing(1)
         name = QLabel(title)
         name.setObjectName("quickTitle")
-        count = QLabel(self._count())
-        count.setObjectName("quickCount")
-        text.addWidget(name)
-        text.addWidget(count)
-        layout.addLayout(text, 1)
+        name.setAlignment(Qt.AlignCenter)
+        layout.addWidget(name)
 
-    def _count(self) -> str:
+        self.count = QLabel()
+        self.count.setObjectName("quickCount")
+        self.count.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.count)
+        layout.addStretch(1)
+        self.refresh_count()
+
+    def refresh_count(self):
         folder = storage_path() / self.path_name
         try:
             count = sum(1 for p in folder.iterdir()) if folder.exists() else 0
-            return f"{count} files"
         except OSError:
-            return "0 files"
-
-    def refresh_count(self):
-        # The second child in the text layout is the count label.
-        for child in self.findChildren(QLabel):
-            if child.objectName() == "quickCount":
-                child.setText(self._count())
-                break
+            count = 0
+        self.count.setText(f"{count} {self.count_unit}")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -80,13 +77,19 @@ class RecentRow(QFrame):
         self.setCursor(Qt.PointingHandCursor)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 3, 8, 3)
-        layout.setSpacing(10)
+        layout.setContentsMargins(16, 7, 14, 7)
+        layout.setSpacing(14)
 
-        icon = "▣" if path.is_dir() else "▤"
+        if path.is_dir():
+            icon = "■"
+        else:
+            suffix = path.suffix.lower()
+            icon = {".jpg": "▣", ".jpeg": "▣", ".png": "▣", ".pdf": "▤", ".docx": "▥", ".xlsx": "▦", ".zip": "▥"}.get(suffix, "▤")
+
         icon_label = QLabel(icon)
         icon_label.setObjectName("recentIcon")
-        icon_label.setFixedWidth(28)
+        icon_label.setFixedSize(42, 42)
+        icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
         name_label = QLabel(path.name)
@@ -95,44 +98,54 @@ class RecentRow(QFrame):
 
         try:
             stat = path.stat()
-            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M")
+            modified = self._relative_date(stat.st_mtime)
             size = "—" if path.is_dir() else self._format_size(stat.st_size)
         except OSError:
             modified, size = "—", "—"
 
         date_label = QLabel(modified)
         date_label.setObjectName("recentMeta")
-        date_label.setFixedWidth(145)
+        date_label.setMinimumWidth(150)
         layout.addWidget(date_label)
 
         size_label = QLabel(size)
         size_label.setObjectName("recentMeta")
-        size_label.setFixedWidth(70)
+        size_label.setMinimumWidth(80)
         layout.addWidget(size_label)
 
         self.star = QPushButton("★" if favorites.contains(str(path)) else "☆")
         self.star.setObjectName("recentStar")
-        self.star.setFixedSize(28, 28)
+        self.star.setFixedSize(36, 36)
         self.star.setCursor(Qt.PointingHandCursor)
         self.star.clicked.connect(self._toggle_favorite)
         layout.addWidget(self.star)
 
         more = QPushButton("•••")
         more.setObjectName("recentMore")
-        more.setFixedSize(30, 28)
+        more.setFixedSize(36, 36)
         more.setCursor(Qt.PointingHandCursor)
         more.clicked.connect(lambda: self.opened.emit(str(path)))
         layout.addWidget(more)
 
     @staticmethod
+    def _relative_date(timestamp):
+        date = datetime.fromtimestamp(timestamp)
+        now = datetime.now()
+        if date.date() == now.date():
+            return f"Сегодня, {date:%H:%M}"
+        if (now.date() - date.date()).days == 1:
+            return f"Вчера, {date:%H:%M}"
+        return date.strftime("%d.%m.%Y")
+
+    @staticmethod
     def _format_size(size: int) -> str:
         if size < 1024:
-            return f"{size} B"
+            return f"{size} Б"
         if size < 1024 ** 2:
-            return f"{size / 1024:.1f} KB"
+            return f"{size / 1024:.1f} КБ"
         if size < 1024 ** 3:
-            return f"{size / 1024 ** 2:.1f} MB"
-        return f"{size / 1024 ** 3:.1f} GB"
+            return f"{size / 1024 ** 2:.1f} МБ"
+        return f"{size / 1024 ** 3:.1f} ГБ"
 
     def _toggle_favorite(self):
         value = str(self.path)
@@ -155,6 +168,8 @@ class Dashboard(QWidget):
     folderRequested = Signal(str)
     fileRequested = Signal(str)
     showAllRequested = Signal()
+    newFolderRequested = Signal()
+    uploadRequested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -164,28 +179,36 @@ class Dashboard(QWidget):
         self.quick_cards = []
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(12)
+        root.setContentsMargins(30, 22, 24, 18)
+        root.setSpacing(18)
 
-        title = QLabel("Content")
+        title_row = QHBoxLayout()
+        title = QLabel("Быстрый доступ")
         title.setObjectName("contentTitle")
-        root.addWidget(title)
+        title_row.addWidget(title)
+        title_row.addStretch(1)
 
-        quick_title = QLabel("Quick access")
-        quick_title.setObjectName("subTitle")
-        root.addWidget(quick_title)
+        new_folder = QPushButton("□  Новая папка")
+        new_folder.setObjectName("secondaryAction")
+        new_folder.clicked.connect(self.newFolderRequested.emit)
+        title_row.addWidget(new_folder)
+
+        upload = QPushButton("↥  Загрузить")
+        upload.setObjectName("primaryAction")
+        upload.clicked.connect(self.uploadRequested.emit)
+        title_row.addWidget(upload)
+        root.addLayout(title_row)
 
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(10)
-
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(12)
         cards = [
-            ("Documents", "▣", "Documents", "blue"),
-            ("Photos", "●", "Images", "green"),
-            ("Video", "▶", "Videos", "purple"),
-            ("Presentations", "▤", "Presentations", "red"),
-            ("Archives", "▥", "Archives", "violet"),
+            ("Документы", "▰", "Documents", "blue"),
+            ("Фото", "◉", "Images", "green"),
+            ("Видео", "▶", "Videos", "purple"),
+            ("Презентации", "▤", "Presentations", "red"),
+            ("Архивы", "▥", "Archives", "violet"),
         ]
         for index, item in enumerate(cards):
             card = QuickCard(*item)
@@ -193,15 +216,14 @@ class Dashboard(QWidget):
             self.quick_cards.append(card)
             grid.addWidget(card, 0, index)
             grid.setColumnStretch(index, 1)
-
         root.addLayout(grid)
 
         recent_header = QHBoxLayout()
-        recent_title = QLabel("Recent files")
+        recent_title = QLabel("Недавние файлы")
         recent_title.setObjectName("subTitle")
         recent_header.addWidget(recent_title)
-        recent_header.addStretch()
-        show_all = QPushButton("Show all")
+        recent_header.addStretch(1)
+        show_all = QPushButton("Показать все")
         show_all.setObjectName("showAll")
         show_all.clicked.connect(self.showAllRequested.emit)
         recent_header.addWidget(show_all)
@@ -210,22 +232,24 @@ class Dashboard(QWidget):
         self.table = QFrame()
         self.table.setObjectName("recentTable")
         self.table_layout = QVBoxLayout(self.table)
-        self.table_layout.setContentsMargins(0, 4, 0, 4)
-        self.table_layout.setSpacing(4)
+        self.table_layout.setContentsMargins(0, 0, 0, 0)
+        self.table_layout.setSpacing(0)
 
         header = QFrame()
         header.setObjectName("recentHeader")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(10, 2, 8, 2)
-        name = QLabel("Name")
-        date = QLabel("Date modified")
-        size = QLabel("Size")
+        header_layout.setContentsMargins(18, 0, 14, 0)
+        header_layout.setSpacing(14)
+        header_layout.addSpacing(42)
+        name = QLabel("Название  ↑")
+        date = QLabel("Дата изменения")
+        size = QLabel("Размер")
         header_layout.addWidget(name, 1)
+        date.setMinimumWidth(150)
         header_layout.addWidget(date)
-        date.setFixedWidth(145)
+        size.setMinimumWidth(80)
         header_layout.addWidget(size)
-        size.setFixedWidth(70)
-        header_layout.addSpacing(66)
+        header_layout.addSpacing(72)
         self.table_layout.addWidget(header)
         root.addWidget(self.table, 1)
 
@@ -258,14 +282,14 @@ class Dashboard(QWidget):
         unique = []
         seen = set()
         for path in paths:
-            key = str(path.resolve()).lower()
+            key = str(path.resolve()).casefold()
             if key not in seen:
                 seen.add(key)
                 unique.append(path)
         paths = unique[:6]
 
         if not paths:
-            empty = QLabel("No recent files")
+            empty = QLabel("Здесь появятся недавно открытые файлы")
             empty.setObjectName("recentEmpty")
             empty.setAlignment(Qt.AlignCenter)
             self.table_layout.addWidget(empty)
