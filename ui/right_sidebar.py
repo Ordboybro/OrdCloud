@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel
 
 from config import ICONS_DIR
 from ui.storage_panel import StoragePanel
@@ -16,10 +16,11 @@ class RightSidebar(QFrame):
         self.setFixedWidth(286)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 32, 28)
+        layout.setContentsMargins(18, 104, 32, 28)
         layout.setSpacing(14)
 
         self.storage = StoragePanel()
+        self.storage.upgradeRequested.connect(self.upgradeRequested.emit)
         layout.addWidget(self.storage)
 
         upload_title = QLabel("Загрузить файлы")
@@ -48,15 +49,7 @@ class RightSidebar(QFrame):
         upload_layout.addWidget(hint)
         self.upload_box.mousePressEvent = self._browse
         layout.addWidget(self.upload_box)
-
         layout.addStretch(1)
-
-        upgrade = QPushButton("Увеличить объём")
-        upgrade.setObjectName("upgradeButton")
-        upgrade.setMinimumHeight(42)
-        upgrade.setCursor(Qt.PointingHandCursor)
-        upgrade.clicked.connect(self.upgradeRequested.emit)
-        layout.addWidget(upgrade)
 
     def _browse(self, event):
         if event.button() == Qt.LeftButton:
