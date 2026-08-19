@@ -15,11 +15,12 @@ class StoragePanel(QFrame):
         self.setMaximumHeight(454)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(4, 16, 4, 16)
         layout.setSpacing(6)
 
         title = QLabel("Хранилище")
         title.setObjectName("sectionTitle")
+        title.setContentsMargins(12, 0, 0, 0)
         layout.addWidget(title)
 
         self.circle = StorageSegment()
