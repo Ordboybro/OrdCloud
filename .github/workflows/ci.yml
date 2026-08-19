@@ -3,8 +3,15 @@ name: OrdCloud CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "screenshots/**"
+      - "README.md"
   pull_request:
     branches: [main]
+
+concurrency:
+  group: ordcloud-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -28,7 +35,9 @@ jobs:
       - name: Run storage tests
         run: python -m unittest discover -s tests -v
 
-      - name: Verify UI imports
+      - name: Smoke-test the UI
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -c "from ui.main_window import MainWindow; print('UI import: OK')"
+        run: >-
+          python -c "from PySide6.QtWidgets import QApplication; from ui.main_window import MainWindow;
+          app=QApplication([]); window=MainWindow(); window.close(); print('UI smoke test: OK')"
