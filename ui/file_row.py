@@ -1,7 +1,10 @@
 from datetime import datetime
+from pathlib import Path
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 from PySide6.QtCore import Signal, Qt
+
+from ui.file_type_icon import FileTypeIcon
 
 
 class FileRow(QFrame):
@@ -13,18 +16,17 @@ class FileRow(QFrame):
         super().__init__()
         self.data = data
         self.setObjectName("fileRow")
-        self.setMinimumHeight(52)
-        self.setMaximumHeight(58)
+        self.setMinimumHeight(58)
+        self.setMaximumHeight(62)
         self.setCursor(Qt.PointingHandCursor)
         self._compact = False
         self._selected = False
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 4, 12, 4)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 6, 16, 6)
+        layout.setSpacing(14)
 
-        self.icon = QLabel(data.get("icon", "•"))
-        self.icon.setObjectName("fileIcon")
+        self.icon = FileTypeIcon(Path(data["path"]))
         self.name = QLabel(data["name"])
         self.name.setObjectName("fileName")
         self.modified = QLabel(self._format_date(data.get("modified", "")))
@@ -58,7 +60,7 @@ class FileRow(QFrame):
 
     def set_compact(self, value: bool):
         self._compact = value
-        height = 42 if value else 52
+        height = 50 if value else 58
         self.setMinimumHeight(height)
         self.setMaximumHeight(height + 4)
 
