@@ -14,13 +14,13 @@ class RightSidebar(QFrame):
         self.setFixedWidth(286)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 10, 0, 0)
-        layout.setSpacing(14)
+        layout.setContentsMargins(18, 18, 18, 24)
+        layout.setSpacing(16)
 
         self.storage = StoragePanel()
         layout.addWidget(self.storage)
 
-        upload_title = QLabel("Upload files")
+        upload_title = QLabel("Загрузить файлы")
         upload_title.setObjectName("uploadTitle")
         layout.addWidget(upload_title)
 
@@ -31,13 +31,13 @@ class RightSidebar(QFrame):
         upload_layout.setContentsMargins(12, 18, 12, 18)
         upload_layout.setSpacing(5)
 
-        icon = QLabel("↑")
+        icon = QLabel("♧")
         icon.setObjectName("uploadIcon")
         icon.setAlignment(Qt.AlignCenter)
-        text = QLabel("Drop files here")
+        text = QLabel("Перетащите файлы сюда")
         text.setObjectName("uploadText")
         text.setAlignment(Qt.AlignCenter)
-        hint = QLabel("or click to browse")
+        hint = QLabel("или нажмите для выбора")
         hint.setObjectName("uploadHint")
         hint.setAlignment(Qt.AlignCenter)
         upload_layout.addWidget(icon)
@@ -48,9 +48,9 @@ class RightSidebar(QFrame):
 
         layout.addStretch(1)
 
-        upgrade = QPushButton("Upgrade Plan")
+        upgrade = QPushButton("Увеличить объём")
         upgrade.setObjectName("upgradeButton")
-        upgrade.setMinimumHeight(40)
+        upgrade.setMinimumHeight(42)
         upgrade.setCursor(Qt.PointingHandCursor)
         upgrade.clicked.connect(self.upgradeRequested.emit)
         layout.addWidget(upgrade)
