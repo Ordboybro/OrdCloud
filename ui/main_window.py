@@ -18,6 +18,7 @@ from modules.clipboard import Clipboard
 from modules.favorites import Favorites
 from modules.recent import Recent
 from modules.search_worker import SearchWorker
+from modules.settings import Settings
 from modules.storage_service import storage_path
 from modules.ui_actions import UIActions
 from ui.left_menu import LeftMenu
@@ -28,6 +29,7 @@ from ui.explorer import Explorer
 from ui.status_bar import StatusBar
 from ui.right_sidebar import RightSidebar
 from ui.dashboard import Dashboard
+from ui.settings_dialog import SettingsDialog
 
 
 class MainWindow(QMainWindow):
@@ -37,13 +39,14 @@ class MainWindow(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 
+        self.settings = Settings()
         self.history = []
         self.history_index = -1
         self.selected_item = None
         self.clipboard = Clipboard()
-        self.compact_view = False
+        self.compact_view = self.settings.get("view", "list") == "compact"
         self._animations = []
-        self._sidebar_visible = True
+        self._sidebar_visible = bool(self.settings.get("sidebar", True))
         self._search_request_id = 0
         self._thread_pool = QThreadPool.globalInstance()
         self._search_timer = QTimer(self)
@@ -56,6 +59,7 @@ class MainWindow(QMainWindow):
         self._connect_signals()
         self.ui_actions.connect()
         self._setup_shortcuts()
+        self.left_menu.setVisible(self._sidebar_visible)
         self._show_home(animate=False)
 
     def _build_ui(self):
@@ -132,6 +136,7 @@ class MainWindow(QMainWindow):
             ("Ctrl+N", self.ui_actions.create_folder),
             ("Ctrl+U", self.ui_actions.upload),
             ("Ctrl+C", self.ui_actions.copy),
+            ("Ctrl+X", self.ui_actions.cut),
             ("Ctrl+V", self.ui_actions.paste),
             ("F2", self.ui_actions.rename),
             ("Delete", self.ui_actions.delete),
@@ -156,12 +161,15 @@ class MainWindow(QMainWindow):
     def _toggle_sidebar(self):
         self._sidebar_visible = not self._sidebar_visible
         self.left_menu.setVisible(self._sidebar_visible)
+        self.settings.set("sidebar", self._sidebar_visible)
         self.status_bar.updateStatus("Боковая панель скрыта" if not self._sidebar_visible else "Боковая панель показана")
 
     def _schedule_search(self, _text):
         self._search_timer.start()
 
     def _fade_in(self, widget):
+        if not self.settings.get("animations", True):
+            return
         effect = QGraphicsOpacityEffect(widget)
         effect.setOpacity(0.0)
         widget.setGraphicsEffect(effect)
@@ -203,6 +211,7 @@ class MainWindow(QMainWindow):
         self.navigation.show()
         self.action_bar.show()
         self.status_bar.show()
+        self.explorer.set_compact(self.compact_view)
         if self.explorer.current is None:
             self.explorer.open(storage_path())
         if animate:
@@ -274,14 +283,15 @@ class MainWindow(QMainWindow):
             "Убрать из избранного" if favorites.contains(favorite_path) else "Добавить в избранное",
             menu,
         )
-        favorite_action.triggered.connect(
-            lambda: self._toggle_favorite(favorite_path, favorites)
-        )
+        favorite_action.triggered.connect(lambda: self._toggle_favorite(favorite_path, favorites))
         menu.addAction(favorite_action)
 
         copy_action = QAction("Копировать", menu)
         copy_action.triggered.connect(self.ui_actions.copy)
         menu.addAction(copy_action)
+        cut_action = QAction("Вырезать", menu)
+        cut_action.triggered.connect(self.ui_actions.cut)
+        menu.addAction(cut_action)
         rename_action = QAction("Переименовать", menu)
         rename_action.triggered.connect(self.ui_actions.rename)
         menu.addAction(rename_action)
@@ -340,12 +350,15 @@ class MainWindow(QMainWindow):
             self._show_home()
             return
         if page == "settings":
-            self._show_home()
-            QMessageBox.information(
-                self,
-                APP_NAME,
-                f"Настройки\n\nХранилище: локальное\nЛимит: 5 ГБ\nТема: тёмная\nВерсия: {APP_VERSION}",
-            )
+            self._show_home(animate=False)
+            dialog = SettingsDialog(self)
+            if dialog.exec() == SettingsDialog.Accepted:
+                self.settings = Settings()
+                self.compact_view = self.settings.get("view", "list") == "compact"
+                self._sidebar_visible = bool(self.settings.get("sidebar", True))
+                self.left_menu.setVisible(self._sidebar_visible)
+                self.explorer.set_compact(self.compact_view)
+                self.status_bar.updateStatus("Настройки сохранены")
             return
         if page == "trash":
             try:
@@ -420,6 +433,7 @@ class MainWindow(QMainWindow):
     def _toggle_view(self):
         self.compact_view = not self.compact_view
         self.explorer.set_compact(self.compact_view)
+        self.settings.set("view", "compact" if self.compact_view else "list")
         self.status_bar.updateStatus("Компактный вид" if self.compact_view else "Обычный вид")
 
     def _upload_to_current(self):
