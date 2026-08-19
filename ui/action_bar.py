@@ -1,5 +1,8 @@
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton
-from PySide6.QtCore import Qt
+
+from config import ICONS_DIR
 
 
 class ActionBar(QFrame):
@@ -8,23 +11,25 @@ class ActionBar(QFrame):
         self.setObjectName("actionBar")
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(2)
 
         actions = [
-            ("new_folder", "+  Новая папка"),
-            ("upload", "↑  Загрузить"),
-            ("copy", "Копировать"),
-            ("paste", "Вставить"),
-            ("rename", "Переименовать"),
-            ("delete", "Удалить"),
+            ("new_folder", "action_new_folder.svg", "Новая папка"),
+            ("upload", "ui_upload.svg", "Загрузить"),
+            ("copy", "action_copy.svg", "Копировать"),
+            ("paste", "action_paste.svg", "Вставить"),
+            ("rename", "action_rename.svg", "Переименовать"),
+            ("delete", "action_delete.svg", "Удалить"),
         ]
 
         self.buttons = {}
-        for key, text in actions:
+        for key, icon_name, text in actions:
             button = QPushButton(text)
             button.setCursor(Qt.PointingHandCursor)
             button.setProperty("actionKey", key)
+            button.setIcon(QIcon(str(ICONS_DIR / icon_name)))
+            button.setIconSize(QSize(18, 18))
             self.buttons[key] = button
             layout.addWidget(button)
 
