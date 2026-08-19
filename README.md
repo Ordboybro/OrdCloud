@@ -2,7 +2,7 @@
 
 **OrdCloud** is a local-first desktop file-storage application built with **Python + PySide6**. It combines a polished dark cloud-drive interface with real local file management.
 
-> Current version: **0.5.0**
+> Current version: **0.6.0**
 
 ## What it does
 
@@ -18,16 +18,17 @@
 - Copy / paste
 - Rename
 - Delete to the Windows Recycle Bin
-- Recursive search with a debounced UI
+- Recursive search with debounce and background worker execution
+- Search result race protection so stale results cannot overwrite newer navigation
 - Compact view
-- Context menu
+- Context menu with favorites
 - Back / forward navigation
 - Keyboard shortcuts
-- Real-time storage statistics
+- Shared cached storage statistics to avoid repeated filesystem scans
 - Painted file-type icons for consistent rendering
 - Safe path validation so file operations stay inside the storage sandbox
 - Smooth lightweight page transitions
-- Automated compile, storage tests and UI-import checks in GitHub Actions
+- Automated compile, storage tests and offscreen UI smoke checks in GitHub Actions
 
 ## Keyboard shortcuts
 
@@ -43,6 +44,7 @@
 | `Alt+←` | Back |
 | `Alt+→` | Forward |
 | `F5` | Refresh |
+| `Escape` | Clear selection |
 
 ## Tech stack
 
@@ -86,6 +88,8 @@ OrdCloud/
 │   ├── favorites.py
 │   ├── file_model.py
 │   ├── recent.py
+│   ├── search_worker.py
+│   ├── recent.py
 │   ├── storage.py
 │   ├── storage_service.py
 │   └── ui_actions.py
@@ -102,6 +106,8 @@ OrdCloud/
 │   ├── search_box.py
 │   ├── status_bar.py
 │   ├── storage_panel.py
+│   ├── storage_segment.py
+│   ├── storage_stats.py
 │   └── top_toolbar.py
 ├── resources/
 │   ├── icons/
@@ -117,11 +123,12 @@ OrdCloud/
 
 The project separates responsibilities into small modules:
 
-- `modules/storage.py` — safe filesystem/storage primitives
+- `modules/storage.py` — safe filesystem primitives and shared storage statistics
 - `modules/storage_service.py` — application storage configuration
+- `modules/search_worker.py` — non-blocking recursive search worker
 - `modules/ui_actions.py` — commands initiated by the interface
 - `modules/file_model.py` — converts filesystem entries into UI data
-- `ui/main_window.py` — application shell, navigation and shortcuts
+- `ui/main_window.py` — application shell, navigation, search and shortcuts
 - `ui/dashboard.py` — Home dashboard
 - `ui/explorer.py` — file browser
 - `ui/file_type_icon.py` — consistent file/folder icon rendering
