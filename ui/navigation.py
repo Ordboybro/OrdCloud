@@ -11,9 +11,10 @@ class Navigation(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.setObjectName("navigation")
         self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(5)
+        self.layout.setContentsMargins(28, 0, 24, 0)
+        self.layout.setSpacing(4)
 
     def setPath(self, path):
         while self.layout.count():
@@ -28,8 +29,9 @@ class Navigation(QWidget):
         except ValueError:
             return
 
-        home = QPushButton("⌂")
-        home.setToolTip("My Files")
+        home = QPushButton("Все файлы")
+        home.setObjectName("crumbButton")
+        home.setToolTip("Корень хранилища")
         home.clicked.connect(lambda: self.pathClicked.emit(str(root)))
         self.layout.addWidget(home)
 
@@ -38,6 +40,7 @@ class Navigation(QWidget):
             self.layout.addWidget(QLabel("›"))
             current = current / part
             button = QPushButton(part)
+            button.setObjectName("crumbButton")
             folder = str(current)
             button.clicked.connect(lambda checked=False, folder=folder: self.pathClicked.emit(folder))
             self.layout.addWidget(button)
