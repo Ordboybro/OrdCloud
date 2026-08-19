@@ -3,10 +3,8 @@ from PySide6.QtCore import Qt
 
 
 class ActionBar(QFrame):
-
     def __init__(self):
         super().__init__()
-
         self.setObjectName("actionBar")
 
         layout = QHBoxLayout(self)
@@ -14,16 +12,15 @@ class ActionBar(QFrame):
         layout.setSpacing(2)
 
         actions = [
-            ("new_folder", "+  New Folder"),
-            ("upload", "↑  Upload"),
-            ("copy", "Copy"),
-            ("paste", "Paste"),
-            ("rename", "Rename"),
-            ("delete", "Delete"),
+            ("new_folder", "+  Новая папка"),
+            ("upload", "↑  Загрузить"),
+            ("copy", "Копировать"),
+            ("paste", "Вставить"),
+            ("rename", "Переименовать"),
+            ("delete", "Удалить"),
         ]
 
         self.buttons = {}
-
         for key, text in actions:
             button = QPushButton(text)
             button.setCursor(Qt.PointingHandCursor)
@@ -37,5 +34,4 @@ class ActionBar(QFrame):
         self.paste = self.buttons["paste"]
         self.rename = self.buttons["rename"]
         self.delete = self.buttons["delete"]
-
         layout.addStretch()
